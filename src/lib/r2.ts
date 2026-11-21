@@ -38,7 +38,7 @@ export async function generateUploadUrl(filename: string, contentType: string) {
   const url = await getSignedUrl(S3, command, { expiresIn: 900 });
   
   // Fallback to the known public dev URL if the env var is missing
-  const publicUrl = process.env.VITE_CLOUDFLARE_PUBLIC_URL || "https://pub-31cdacf0ce134d38bfc7490b92bbcb00.r2.dev";
+  const publicUrl = process.env.VITE_CLOUDFLARE_PUBLIC_URL || "https://pub-6aedbff3e9ed429dbf052e690252ec6f.r2.dev";
 
   return {
     uploadUrl: url,
@@ -73,7 +73,7 @@ export async function uploadBufferToR2(buffer: Buffer | Uint8Array, key: string,
         ContentType: contentType,
       }));
 
-      const publicUrl = getEnv("VITE_CLOUDFLARE_PUBLIC_URL") || process.env.VITE_CLOUDFLARE_PUBLIC_URL || "https://pub-31cdacf0ce134d38bfc7490b92bbcb00.r2.dev";
+      const publicUrl = getEnv("VITE_CLOUDFLARE_PUBLIC_URL") || process.env.VITE_CLOUDFLARE_PUBLIC_URL || "https://pub-6aedbff3e9ed429dbf052e690252ec6f.r2.dev";
       return `${publicUrl}/${key}`;
     } catch (r2Err) {
       console.warn("[uploadBufferToR2] Cloudflare R2 upload error, falling back to storage:", r2Err);

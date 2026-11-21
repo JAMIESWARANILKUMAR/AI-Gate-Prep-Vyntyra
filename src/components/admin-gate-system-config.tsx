@@ -15,7 +15,7 @@ export function AdminGateSystemConfig() {
   const [resendKey, setResendKey] = useState("re_********************************");
   const [d1DatabaseName, setD1DatabaseName] = useState("gate-d1-production");
   const [r2BucketName, setR2BucketName] = useState("vynexa-storage");
-  const [r2PublicUrl, setR2PublicUrl] = useState("https://pub-31cdacf0ce134d38bfc7490b92bbcb00.r2.dev");
+  const [r2PublicUrl, setR2PublicUrl] = useState("https://pub-6aedbff3e9ed429dbf052e690252ec6f.r2.dev");
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {

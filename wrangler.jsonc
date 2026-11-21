@@ -39,6 +39,6 @@
     "SUPABASE_URL": "https://vmoppxbrihhxkbbfcolw.supabase.co",
     "SUPABASE_JWKS_URL": "https://vmoppxbrihhxkbbfcolw.supabase.co/auth/v1/.well-known/jwks.json",
     "VITE_SUPABASE_URL": "https://vmoppxbrihhxkbbfcolw.supabase.co",
-    "VITE_CLOUDFLARE_PUBLIC_URL": "https://pub-31cdacf0ce134d38bfc7490b92bbcb00.r2.dev"
+    "VITE_CLOUDFLARE_PUBLIC_URL": "https://pub-6aedbff3e9ed429dbf052e690252ec6f.r2.dev"
   }
 }

@@ -178,7 +178,7 @@ function getSeedVaultDocuments(branch?: string, category?: string): GateVaultIte
       title: "GATE 2025 Computer Science & IT (CS) - Official Question Paper & Key",
       description: "Official question paper conducted by IIT Roorkee with verified master answer key.",
       r2_key: "gate-vault/pyq/CS/GATE_2025_CS_Official.pdf",
-      r2_url: "https://pub-31cdacf0ce134d38bfc7490b92bbcb00.r2.dev/gate-vault/pyq/CS/GATE_2025_CS_Official.pdf",
+      r2_url: "https://pub-6aedbff3e9ed429dbf052e690252ec6f.r2.dev/gate-vault/pyq/CS/GATE_2025_CS_Official.pdf",
       download_count: 1420,
       created_at: "2025-02-15T10:00:00Z"
     },
@@ -190,7 +190,7 @@ function getSeedVaultDocuments(branch?: string, category?: string): GateVaultIte
       title: "GATE 2025 Data Science & AI (DA) - Official Question Paper & Key",
       description: "Official IIT Roorkee question paper for Data Science and Artificial Intelligence.",
       r2_key: "gate-vault/pyq/DA/GATE_2025_DA_Official.pdf",
-      r2_url: "https://pub-31cdacf0ce134d38bfc7490b92bbcb00.r2.dev/gate-vault/pyq/DA/GATE_2025_DA_Official.pdf",
+      r2_url: "https://pub-6aedbff3e9ed429dbf052e690252ec6f.r2.dev/gate-vault/pyq/DA/GATE_2025_DA_Official.pdf",
       download_count: 980,
       created_at: "2025-02-15T10:00:00Z"
     },
@@ -202,7 +202,7 @@ function getSeedVaultDocuments(branch?: string, category?: string): GateVaultIte
       title: "GATE 2026 Official Syllabus - Computer Science & Information Technology",
       description: "Detailed topic-wise syllabus breakdown, sections weightage, and reference textbooks.",
       r2_key: "gate-vault/syllabus/GATE_CS_Syllabus_Official.pdf",
-      r2_url: "https://pub-31cdacf0ce134d38bfc7490b92bbcb00.r2.dev/gate-vault/syllabus/GATE_CS_Syllabus_Official.pdf",
+      r2_url: "https://pub-6aedbff3e9ed429dbf052e690252ec6f.r2.dev/gate-vault/syllabus/GATE_CS_Syllabus_Official.pdf",
       download_count: 3100,
       created_at: "2025-01-10T10:00:00Z"
     },
@@ -214,7 +214,7 @@ function getSeedVaultDocuments(branch?: string, category?: string): GateVaultIte
       title: "GATE 2026 Official Syllabus - Data Science & Artificial Intelligence (DA)",
       description: "Machine Learning, Deep Learning, Probability & Statistics, Linear Algebra and Python.",
       r2_key: "gate-vault/syllabus/GATE_DA_Syllabus_Official.pdf",
-      r2_url: "https://pub-31cdacf0ce134d38bfc7490b92bbcb00.r2.dev/gate-vault/syllabus/GATE_DA_Syllabus_Official.pdf",
+      r2_url: "https://pub-6aedbff3e9ed429dbf052e690252ec6f.r2.dev/gate-vault/syllabus/GATE_DA_Syllabus_Official.pdf",
       download_count: 2450,
       created_at: "2025-01-10T10:00:00Z"
     },
@@ -226,7 +226,7 @@ function getSeedVaultDocuments(branch?: string, category?: string): GateVaultIte
       title: "High-Yield Algorithms & Asymptotic Notation Mastery Guide",
       description: "Recurrence relations, divide-and-conquer, greedy, dynamic programming & graph algorithms.",
       r2_key: "gate-vault/materials/CS/Algorithms_Core_Notes.pdf",
-      r2_url: "https://pub-31cdacf0ce134d38bfc7490b92bbcb00.r2.dev/gate-vault/materials/CS/Algorithms_Core_Notes.pdf",
+      r2_url: "https://pub-6aedbff3e9ed429dbf052e690252ec6f.r2.dev/gate-vault/materials/CS/Algorithms_Core_Notes.pdf",
       download_count: 1890,
       created_at: "2025-01-20T10:00:00Z"
     },
@@ -238,7 +238,7 @@ function getSeedVaultDocuments(branch?: string, category?: string): GateVaultIte
       title: "GATE CS Complete Formula & Quick Revision Handbook",
       description: "Formulas across DBMS Normalization, Discrete Math, OS Scheduling, and Networks Subnetting.",
       r2_key: "gate-vault/materials/CS/GATE_CS_Formula_Sheet.pdf",
-      r2_url: "https://pub-31cdacf0ce134d38bfc7490b92bbcb00.r2.dev/gate-vault/materials/CS/GATE_CS_Formula_Sheet.pdf",
+      r2_url: "https://pub-6aedbff3e9ed429dbf052e690252ec6f.r2.dev/gate-vault/materials/CS/GATE_CS_Formula_Sheet.pdf",
       download_count: 4200,
       created_at: "2025-01-25T10:00:00Z"
     }
