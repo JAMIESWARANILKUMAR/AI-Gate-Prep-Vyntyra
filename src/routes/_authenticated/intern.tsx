@@ -1,4 +1,7 @@
 import { GateVaultView } from "@/components/gate-vault-view";
+import { GateNewsWidget } from "@/components/GateNewsWidget";
+import { CampusAdminDashboard } from "@/components/campus-admin-dashboard";
+import { DeptAdminDashboard } from "@/components/dept-admin-dashboard";
 import { GateHighScoreRoadmap } from "@/components/gate-high-score-roadmap";
 import { GateLeaderboardView } from "@/components/gate-leaderboard-view";
 import { InternChatView } from "@/components/intern-chat-view";
@@ -1097,7 +1100,10 @@ function InternDashboard() {
     { id: "leaves",         label: `Leaves (${myLeaves.length})`, shortLabel: "Leaves", icon: CalendarDays, category: "Connect & Support", enabled: isModuleEnabled("leaves") },
     { id: "support",        label: `Support (${supportQueries.length})`, shortLabel: "Support", icon: HelpCircle, category: "Connect & Support", enabled: isModuleEnabled("support") },
     { id: "refer",          label: "Refer & Earn", shortLabel: "Refer", icon: DollarSign, category: "Connect & Support", enabled: isModuleEnabled("refer") },
+    { id: "gate_news", label: "GATE 2027 Live Updates", shortLabel: "News", icon: Bell, category: "Core Work", enabled: true, isNew: true },
     { id: "cbt", label: "Mock & Practice Tests", shortLabel: "Tests", icon: BrainCircuit, category: "Core Work", enabled: true, isNew: true },
+    { id: "campus_admin", label: "Campus Admin Portal", shortLabel: "Campus", icon: Building2, category: "Core Work", enabled: true, isNew: true },
+    { id: "dept_admin", label: "Dept Admin Portal", shortLabel: "Dept", icon: Users, category: "Core Work", enabled: true, isNew: true },
     { id: "vault", label: "PYQ & Syllabus Vault", shortLabel: "Vault", icon: BookOpen, category: "Core Work", enabled: true },
     { id: "roadmap", label: "High-Score Roadmap", shortLabel: "Roadmap", icon: Target, category: "Core Work", enabled: true },
     { id: "leaderboard", label: "All-India Leaderboard", shortLabel: "AIR Matrix", icon: Trophy, category: "Core Work", enabled: true },
@@ -1615,6 +1621,60 @@ function InternDashboard() {
         {/* ─── OVERVIEW ─── */}
         {activeTab === "overview" && (
           <>
+            {/* ─── CO-BRANDED ACADEMIC QUOTA & LIVE NEWS CARD ─── */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-2xs space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black">
+                    <img src="/gate-emblem.svg" alt="GATE" className="h-7 w-7 object-contain" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 font-mono">
+                      <span>Vyntyra GATE</span>
+                      <span>×</span>
+                      <span className="font-bold text-slate-900">IIT Bombay (CSE)</span>
+                    </div>
+                    <div className="font-black text-base text-slate-900 tracking-tight">
+                      Aspirant Examination & Quota Console
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                    Quota Active
+                  </span>
+                </div>
+              </div>
+
+              {/* 3 Quota Metric Indicators */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                  <div className="text-[11px] text-slate-500 font-medium">Full-Length Mocks Remaining</div>
+                  <div className="font-mono text-xl font-black text-slate-900 mt-1">
+                    12 <span className="text-xs text-slate-400 font-normal">/ 15 Allowed</span>
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                  <div className="text-[11px] text-slate-500 font-medium">AI Mock Interviews Remaining</div>
+                  <div className="font-mono text-xl font-black text-slate-900 mt-1">
+                    3 <span className="text-xs text-slate-400 font-normal">/ 5 Allowed</span>
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                  <div className="text-[11px] text-slate-500 font-medium">Daily AI Doubts Quota</div>
+                  <div className="font-mono text-xl font-black text-emerald-700 mt-1">
+                    26 <span className="text-xs text-slate-400 font-normal">/ 30 Today</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Embedded GATE 2027 Verified News */}
+              <div className="pt-2">
+                <GateNewsWidget maxItems={2} />
+              </div>
+            </div>
+
             {/* ─── CORPORATE EXECUTIVE HERO BANNER ─── */}
             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div className="space-y-2">
@@ -4229,6 +4289,65 @@ function InternDashboard() {
               <InternAmbassadorView profile={profile} application={profile} />
             </div>
           )}
+
+        {activeTab === "gate_news" && (
+          <div className="space-y-6 pb-12">
+            <GateNewsWidget />
+          </div>
+        )}
+
+        {activeTab === "campus_admin" && (
+          <div className="space-y-6 pb-12">
+            <CampusAdminDashboard 
+              campus={{
+                id: "camp_iitb",
+                name: "IIT Bombay — Powai Campus",
+                slug: "iitb",
+                logo_r2_url: "https://pub-6aedbff3e9ed429dbf052e690252ec6f.r2.dev/campuses/iitb-emblem.png",
+                primary_accent_hex: "#0284c7",
+                status: "active",
+                max_students: 1500,
+                allocated_mock_credits: 15000,
+                allocated_ai_interview_credits: 3000,
+                allocated_ai_doubt_tokens: 1500000,
+                created_at: new Date().toISOString()
+              }}
+              onSelectDepartment={(d) => {
+                toast.info("Switched to " + d.name + " (" + d.code + ") cohort view");
+                setActiveTab("dept_admin" as any);
+              }}
+            />
+          </div>
+        )}
+
+        {activeTab === "dept_admin" && (
+          <div className="space-y-6 pb-12">
+            <DeptAdminDashboard 
+              campus={{
+                id: "camp_iitb",
+                name: "IIT Bombay — Powai Campus",
+                slug: "iitb",
+                logo_r2_url: "https://pub-6aedbff3e9ed429dbf052e690252ec6f.r2.dev/campuses/iitb-emblem.png",
+                primary_accent_hex: "#0284c7",
+                status: "active",
+                max_students: 1500,
+                allocated_mock_credits: 15000,
+                allocated_ai_interview_credits: 3000,
+                allocated_ai_doubt_tokens: 1500000,
+                created_at: new Date().toISOString()
+              }}
+              department={{
+                id: "dept_iitb_cse",
+                campus_id: "camp_iitb",
+                name: "Department of Computer Science & Engineering",
+                code: "CSE",
+                allocated_mock_credits: 5000,
+                allocated_ai_interview_credits: 1000,
+                created_at: new Date().toISOString()
+              }}
+            />
+          </div>
+        )}
 
         {activeTab === "vault" && (
             <div className="space-y-6 pb-12">

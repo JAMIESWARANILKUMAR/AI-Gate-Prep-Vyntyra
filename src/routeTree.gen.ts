@@ -25,6 +25,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StatusTokenRouteImport } from './routes/status.$token'
+import { Route as CCampusSlugRouteImport } from './routes/c.$campusSlug'
 import { Route as AuthInternRouteImport } from './routes/auth/intern'
 import { Route as AuthEmployeeRouteImport } from './routes/auth/employee'
 import { Route as AuthAdminRouteImport } from './routes/auth/admin'
@@ -117,6 +118,11 @@ const StatusTokenRoute = StatusTokenRouteImport.update({
   path: '/$token',
   getParentRoute: () => StatusRoute,
 } as any)
+const CCampusSlugRoute = CCampusSlugRouteImport.update({
+  id: '/c/$campusSlug',
+  path: '/c/$campusSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthInternRoute = AuthInternRouteImport.update({
   id: '/auth/intern',
   path: '/auth/intern',
@@ -203,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/auth/admin': typeof AuthAdminRoute
   '/auth/employee': typeof AuthEmployeeRoute
   '/auth/intern': typeof AuthInternRoute
+  '/c/$campusSlug': typeof CCampusSlugRoute
   '/status/$token': typeof StatusTokenRoute
   '/admin/email-campaigns': typeof AuthenticatedAdminEmailCampaignsRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsRoute
@@ -232,6 +239,7 @@ export interface FileRoutesByTo {
   '/auth/admin': typeof AuthAdminRoute
   '/auth/employee': typeof AuthEmployeeRoute
   '/auth/intern': typeof AuthInternRoute
+  '/c/$campusSlug': typeof CCampusSlugRoute
   '/status/$token': typeof StatusTokenRoute
   '/admin/email-campaigns': typeof AuthenticatedAdminEmailCampaignsRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsRoute
@@ -263,6 +271,7 @@ export interface FileRoutesById {
   '/auth/admin': typeof AuthAdminRoute
   '/auth/employee': typeof AuthEmployeeRoute
   '/auth/intern': typeof AuthInternRoute
+  '/c/$campusSlug': typeof CCampusSlugRoute
   '/status/$token': typeof StatusTokenRoute
   '/_authenticated/admin/email-campaigns': typeof AuthenticatedAdminEmailCampaignsRoute
   '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRoute
@@ -294,6 +303,7 @@ export interface FileRouteTypes {
     | '/auth/admin'
     | '/auth/employee'
     | '/auth/intern'
+    | '/c/$campusSlug'
     | '/status/$token'
     | '/admin/email-campaigns'
     | '/admin/operations'
@@ -323,6 +333,7 @@ export interface FileRouteTypes {
     | '/auth/admin'
     | '/auth/employee'
     | '/auth/intern'
+    | '/c/$campusSlug'
     | '/status/$token'
     | '/admin/email-campaigns'
     | '/admin/operations'
@@ -353,6 +364,7 @@ export interface FileRouteTypes {
     | '/auth/admin'
     | '/auth/employee'
     | '/auth/intern'
+    | '/c/$campusSlug'
     | '/status/$token'
     | '/_authenticated/admin/email-campaigns'
     | '/_authenticated/admin/operations'
@@ -382,6 +394,7 @@ export interface RootRouteChildren {
   AuthAdminRoute: typeof AuthAdminRoute
   AuthEmployeeRoute: typeof AuthEmployeeRoute
   AuthInternRoute: typeof AuthInternRoute
+  CCampusSlugRoute: typeof CCampusSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -497,6 +510,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/status/$token'
       preLoaderRoute: typeof StatusTokenRouteImport
       parentRoute: typeof StatusRoute
+    }
+    '/c/$campusSlug': {
+      id: '/c/$campusSlug'
+      path: '/c/$campusSlug'
+      fullPath: '/c/$campusSlug'
+      preLoaderRoute: typeof CCampusSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/intern': {
       id: '/auth/intern'
@@ -642,6 +662,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthAdminRoute: AuthAdminRoute,
   AuthEmployeeRoute: AuthEmployeeRoute,
   AuthInternRoute: AuthInternRoute,
+  CCampusSlugRoute: CCampusSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

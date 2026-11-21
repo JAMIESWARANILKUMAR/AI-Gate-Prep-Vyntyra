@@ -4,6 +4,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getInternTestSessionFn, submitCbtExamFn } from "@/lib/cbt.functions";
+import { verifyAndConsumeMockCreditFn } from "@/lib/gate-multi-tenant.functions";
 import { useProctoringEnforcement } from "@/hooks/useProctoringEnforcement";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -142,6 +143,7 @@ function CbtExamInterface() {
   const isScreenShareAllowedRef = useRef<boolean>(false);
 
   const getSessionFn = useServerFn(getInternTestSessionFn);
+  const verifyQuotaFn = useServerFn(verifyAndConsumeMockCreditFn);
   const submitFn = useServerFn(submitCbtExamFn);
 
   // Score & Submit Helpers
@@ -408,6 +410,17 @@ function CbtExamInterface() {
           allow_screen_share: res.allow_screen_share ?? res.test?.allow_screen_share ?? false
         });
         isScreenShareAllowedRef.current = Boolean(res.allow_screen_share ?? res.test?.allow_screen_share);
+        if (testId !== "demo") {
+          verifyQuotaFn({ data: { student_id: res.test?.internId || "student", exam_id: testId } })
+            .then((quotaRes: any) => {
+              if (quotaRes && typeof quotaRes.remaining === "number") {
+                toast.info("Mock credit consumed. Balance remaining: " + quotaRes.remaining);
+              }
+            })
+            .catch((qErr: any) => {
+              toast.error(qErr.message || "Quota limit reached");
+            });
+        }
         const qs = res.questions || [];
         setQuestions(qs);
         setOverallTimeLeft((res.test?.time_limit_minutes || 30) * 60);

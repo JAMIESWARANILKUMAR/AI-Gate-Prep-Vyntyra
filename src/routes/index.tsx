@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/footer";
+import { GateNewsWidget } from "@/components/GateNewsWidget";
+import { Building2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -280,6 +282,105 @@ function HomePage() {
             );
           })}
         </div>
+      </section>
+
+      {/* Institutional Campus Partners & Co-Branded Portals */}
+      <section className="py-14 px-4 sm:px-6 max-w-6xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div>
+            <div className="inline-block text-[11px] font-mono uppercase font-bold text-slate-500 tracking-wider mb-1">
+              Multi-Tenant Architecture
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              Enterprise Campus Partner Portals
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              Dedicated institutional CBT hubs with cascading quota ledgers and department leaderboards.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Link
+            to="/c/$campusSlug"
+            params={{ campusSlug: "iitb" }}
+            className="p-5 rounded-xl bg-white border border-slate-200 hover:border-slate-400 transition shadow-2xs group flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                  /c/iitb
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">15,000 Mocks</span>
+              </div>
+              <h3 className="font-bold text-base text-slate-900 group-hover:text-blue-600 transition">
+                IIT Bombay
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Powai Campus • 4 Academic Departments (CSE, DSAI, EE, ME)
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-900">
+              <span>Enter Campus Portal</span>
+              <span className="group-hover:translate-x-1 transition font-mono">→</span>
+            </div>
+          </Link>
+
+          <Link
+            to="/c/$campusSlug"
+            params={{ campusSlug: "bits-pilani" }}
+            className="p-5 rounded-xl bg-white border border-slate-200 hover:border-slate-400 transition shadow-2xs group flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                  /c/bits-pilani
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">10,000 Mocks</span>
+              </div>
+              <h3 className="font-bold text-base text-slate-900 group-hover:text-amber-600 transition">
+                BITS Pilani
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Institute of Technology • CS, EEE & ME Cohorts
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-900">
+              <span>Enter Campus Portal</span>
+              <span className="group-hover:translate-x-1 transition font-mono">→</span>
+            </div>
+          </Link>
+
+          <Link
+            to="/c/$campusSlug"
+            params={{ campusSlug: "anna-univ" }}
+            className="p-5 rounded-xl bg-white border border-slate-200 hover:border-slate-400 transition shadow-2xs group flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  /c/anna-univ
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">8,000 Mocks</span>
+              </div>
+              <h3 className="font-bold text-base text-slate-900 group-hover:text-emerald-600 transition">
+                Anna University
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                College of Engineering Guindy • Statewide GATE Aspirants
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-900">
+              <span>Enter Campus Portal</span>
+              <span className="group-hover:translate-x-1 transition font-mono">→</span>
+            </div>
+          </Link>
+        </div>
+      </section>
+
+      {/* Verified GATE 2027 News Feed Section */}
+      <section className="py-10 px-4 sm:px-6 max-w-6xl mx-auto">
+        <GateNewsWidget maxItems={3} />
       </section>
 
       {/* Role Gateways Section */}

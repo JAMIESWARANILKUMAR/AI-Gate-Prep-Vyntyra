@@ -1,4 +1,6 @@
 import { GateVaultView } from "@/components/gate-vault-view";
+import { AdminCampusManagement } from "@/components/admin-campus-management";
+import { GateNewsWidget } from "@/components/GateNewsWidget";
 import { AdminInternChatAuditView } from "@/components/admin-intern-chat-audit";
 import MDEditor from '@uiw/react-md-editor';
 import ReactQuill from 'react-quill';
@@ -3189,6 +3191,18 @@ function OperationsDashboard() {
         )}
 
         {/* 🧠 TAB: AI CBT ENGINE */}
+        {activeTab === "campuses" && (
+          <section id="campuses-section" className="space-y-4">
+            <AdminCampusManagement />
+          </section>
+        )}
+
+        {activeTab === "gate-news" && (
+          <section id="gate-news-section" className="space-y-4">
+            <GateNewsWidget isAdmin={true} />
+          </section>
+        )}
+
         {activeTab === "cbt" && (
           <section id="cbt-section">
             <CbtOperationsTab />
