@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vyntyra-vynexa",
+  "main": ".output/server/index.mjs",
+  "compatibility_date": "2026-02-24",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "placement": {
+    "mode": "smart"
+  },
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".output/public"
+  },
+  "observability": {
+    "enabled": false
+  },
+  "keep_vars": true,
+  "vars": {
+    "CLOUDFLARE_BUCKET_NAME": "vynexa-storage",
+    "SUPABASE_URL": "https://yvcocxnucmqxigrgkzha.supabase.co",
+    "SUPABASE_JWKS_URL": "https://yvcocxnucmqxigrgkzha.supabase.co/auth/v1/.well-known/jwks.json",
+    "VITE_SUPABASE_URL": "https://yvcocxnucmqxigrgkzha.supabase.co",
+    "VITE_CLOUDFLARE_PUBLIC_URL": "https://pub-31cdacf0ce134d38bfc7490b92bbcb00.r2.dev"
+  }
+}

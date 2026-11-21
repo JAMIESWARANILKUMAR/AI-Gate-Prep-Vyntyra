@@ -1,0 +1,147 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getAdminClient } from "@/integrations/supabase/admin";
+import { getEnv } from "@/lib/env";
+import { generateAiJson } from "@/lib/ai-gateway";
+
+const supabase = new Proxy({} as any, { get: (_, prop) => (getAdminClient() as any)[prop] });
+
+const aiTaskSchema = z.object({
+  documentText: z.string().min(1, "Document text is required"),
+});
+
+export const parseDocumentAndAssignTasks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => aiTaskSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    // 1. Ensure admin
+    const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', context.userId).single();
+    if (!roleData || (roleData.role !== 'admin' && roleData.role !== 'super_admin')) {
+      throw new Error("Unauthorized. Only admins can use AI task assignment.");
+    }
+
+    // 2. Call AI API via Unified Gateway (Gemini primary with OpenRouter fallback)
+    const prompt = `You are an AI assistant for an internship management system.
+Your goal is to extract actionable tasks from the following document or syllabus and map them to domains.
+Domains: tech, marketing, hr, design, operations, management, sales, general.
+
+Output strictly as a JSON array of objects with this structure, and NOTHING else (no markdown wrappers):
+[
+  {
+    "title": "Task Title",
+    "description": "Detailed description of the task based on the document",
+    "domain": "tech",
+    "priority": "medium"
+  }
+]
+
+Document Text:
+${data.documentText.slice(0, 10000)}
+`;
+
+    let aiTasks: any[] = [];
+    try {
+      const res = await generateAiJson<any[]>({
+        model: "gemini-1.5-flash",
+        prompt,
+      });
+      if (Array.isArray(res.data)) {
+        aiTasks = res.data;
+      }
+    } catch (e: any) {
+      console.warn("AI parse skipped or failed, using syllabus extractor:", e.message);
+    }
+
+    if (!aiTasks || !Array.isArray(aiTasks) || aiTasks.length === 0) {
+      // Heuristic syllabus extractor fallback
+      const text = data.documentText;
+      const lower = text.toLowerCase();
+      const domain = /web|code|frontend|backend|sql|python|ai|ml/i.test(lower) ? "tech" : "general";
+
+      // Split lines or units
+      const units = text.split(/(?=UNIT\s*[-:\d]|MODULE\s*[-:\d]|Course\s*Objectives?|Objective)/i)
+        .map(u => u.trim())
+        .filter(u => u.length > 20)
+        .slice(0, 6);
+
+      if (units.length > 0) {
+        aiTasks = units.map((u, idx) => {
+          const firstLine = u.split("\n")[0].replace(/[^\w\s-:]/g, "").trim().slice(0, 70);
+          return {
+            title: firstLine || `Practical Project Assignment: Module ${idx + 1}`,
+            description: `Review and complete hands-on evaluation for syllabus module: ${u.slice(0, 300)}...`,
+            domain,
+            priority: idx === 0 ? "high" : "medium"
+          };
+        });
+      } else {
+        aiTasks = [
+          {
+            title: "Core Curriculum Evaluation & Hands-on Implementation",
+            description: `Implement the key technical outcomes outlined in the syllabus context: ${text.slice(0, 300)}...`,
+            domain,
+            priority: "high"
+          },
+          {
+            title: "Architecture Review & Problem Solving Assignment",
+            description: "Submit comprehensive code documentation, architectural review, and test cases based on the provided curriculum.",
+            domain,
+            priority: "medium"
+          }
+        ];
+      }
+    }
+
+    if (!aiTasks || !Array.isArray(aiTasks) || aiTasks.length === 0) {
+      throw new Error("AI did not return any valid tasks from the document.");
+    }
+
+    // 3. Fetch all active interns to assign tasks randomly per domain
+    const { data: interns, error: internsErr } = await supabase
+      .from('profiles')
+      .select('id, department')
+      .in('role', ['intern', 'intern_student']);
+      
+    if (internsErr) throw new Error("Failed to fetch interns: " + internsErr.message);
+
+    const internsByDomain = (interns || []).reduce((acc: any, intern: any) => {
+      const d = (intern.department || 'general').toLowerCase();
+      if (!acc[d]) acc[d] = [];
+      acc[d].push(intern.id);
+      return acc;
+    }, {});
+
+    const allInternIds = (interns || []).map((i: any) => i.id);
+    const assignedTasks = [];
+
+    // 4. Assign tasks randomly
+    for (const task of aiTasks) {
+      const tDomain = (task.domain || "general").toLowerCase();
+      const domainInterns = internsByDomain[tDomain] && internsByDomain[tDomain].length > 0 
+        ? internsByDomain[tDomain] 
+        : allInternIds; // Fallback to any intern if domain has no interns
+
+      if (domainInterns.length === 0) continue;
+
+      // Pick random intern
+      const randomInternId = domainInterns[Math.floor(Math.random() * domainInterns.length)];
+
+      const payload = {
+        title: task.title,
+        description: task.description,
+        assigned_to: randomInternId,
+        priority: task.priority || 'medium',
+        status: 'pending',
+        is_pool_task: false,
+        target_role: 'intern',
+        created_by: context.userId
+      };
+
+      const { data: createdTask, error: err } = await supabase.from('tasks').insert(payload).select().single();
+      if (err) console.error("Error creating AI task:", err);
+      if (createdTask) assignedTasks.push(createdTask);
+    }
+
+    return { success: true, parsedCount: aiTasks.length, assignedCount: assignedTasks.length };
+  });

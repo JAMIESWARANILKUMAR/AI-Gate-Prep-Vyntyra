@@ -1,0 +1,3335 @@
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { 
+  listAllInternTasksWithProgress, reviewInternTaskByAdmin, deleteTask, 
+  reviewDeadlineExtension, bulkDeleteTasks, bulkUpdateTasks, deleteTaskBatch, deleteAllInternTasks, 
+  adminFinalizeTaskCompletion, listActiveInternsForCohortAssignment, rolloverVerifiedTasksToCohort,
+  moveTasksToStoredBank, assignStoredTasksToInterns, adminAssignOrUpdateTaskCredits
+} from "@/lib/operations.functions";
+import { listAllCbtSubmissionsFn } from "@/lib/cbt.functions";
+import { Button } from "@/components/ui/button";
+import { Award, CreditCard, Layers, ArrowRight, CheckCheck, RefreshCw, SendHorizonal, Calendar, FolderArchive, Archive, PackageCheck, BookmarkPlus, ArrowUpRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { InternTaskAssignmentModal } from "@/components/intern-task-assignment-modal";
+import {
+  ClipboardList, Search, Plus, CheckCircle2, Clock, AlertTriangle, ExternalLink,
+  Trash2, Sparkles, Filter, FileText, Check, RotateCcw, User, Eye, Download, Bell, List, LayoutGrid, Building2, Shield, ShieldCheck,
+  Mail, MessageSquare, Loader2, Send, Users, Video, BookOpen, Play
+} from "lucide-react";
+import { sendTaskNotification } from "@/lib/notifications.functions";
+import { sendTaskNotificationEmail, generateTaskWhatsApp } from "@/lib/notifications-omni.functions";
+import { toast } from "sonner";
+import { TaskRichDescription } from "@/components/task-rich-description";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ManageTeamModal } from "@/components/manage-team-modal";
+import { SmartAvatar } from "@/components/SmartAvatar";
+
+export function AdminInternTasksView() {
+  const qc = useQueryClient();
+  const fetchTasks = useServerFn(listAllInternTasksWithProgress);
+  const doReview = useServerFn(reviewInternTaskByAdmin);
+  const doAdminFinalize = useServerFn(adminFinalizeTaskCompletion);
+  const doDelete = useServerFn(deleteTask);
+  const doBulkDelete = useServerFn(bulkDeleteTasks);
+  const doBulkUpdateTasks = useServerFn(bulkUpdateTasks);
+  const doReviewDeadlineExtension = useServerFn(reviewDeadlineExtension);
+  const doDeleteBatch = useServerFn(deleteTaskBatch);
+  const doClearAllTasks = useServerFn(deleteAllInternTasks);
+  const doSendNotification = useServerFn(sendTaskNotification);
+  const doSendTaskEmail = useServerFn(sendTaskNotificationEmail);
+  const doGenTaskWhatsApp = useServerFn(generateTaskWhatsApp);
+  const fetchActiveInterns = useServerFn(listActiveInternsForCohortAssignment);
+  const doRollover = useServerFn(rolloverVerifiedTasksToCohort);
+  const doMoveToStoredBank = useServerFn(moveTasksToStoredBank);
+  const doAssignStoredTasks = useServerFn(assignStoredTasksToInterns);
+
+  // Tab State: "active" (Assigned to Interns) vs "stored_bank" (Repository for Future) vs "intern_points"
+  const [activeViewTab, setActiveViewTab] = useState<"active" | "submissions" | "stored_bank" | "intern_points">("active");
+  const [previewTask, setPreviewTask] = useState<any>(null);
+
+  const fetchAllCbtSubmissions = useServerFn(listAllCbtSubmissionsFn);
+  const doAssignOrUpdateCredits = useServerFn(adminAssignOrUpdateTaskCredits);
+
+  const { data: allCbtSubmissions = [] } = useQuery({
+    queryKey: ["all-cbt-submissions"],
+    queryFn: () => fetchAllCbtSubmissions(),
+  });
+
+  const [selectedMatrixInternId, setSelectedMatrixInternId] = useState<string>("");
+  const [creditEditModal, setCreditEditModal] = useState<{
+    open: boolean;
+    intern: any;
+    taskId?: string;
+    taskTitle: string;
+    milestoneName: string;
+    credits: number;
+    status: string;
+  }>({
+    open: false,
+    intern: null,
+    taskTitle: "",
+    milestoneName: "",
+    credits: 10,
+    status: "completed"
+  });
+  const [isUpdatingCredits, setIsUpdatingCredits] = useState(false);
+
+  const [manageTeamTask, setManageTeamTask] = useState<any>(null);
+  const [editingDeadlineTaskId, setEditingDeadlineTaskId] = useState<string | null>(null);
+  const [inlineDueDate, setInlineDueDate] = useState("");
+  const [isManageTeamOpen, setIsManageTeamOpen] = useState(false);
+
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [clearAllModalOpen, setClearAllModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+
+  // Stored Bank State
+  const [assignStoredModalOpen, setAssignStoredModalOpen] = useState(false);
+  const [selectedStoredTaskIds, setSelectedStoredTaskIds] = useState<string[]>([]);
+  const [storedTargetInternIds, setStoredTargetInternIds] = useState<string[]>([]);
+  const [storedDueDate, setStoredDueDate] = useState("");
+  const [storedPriority, setStoredPriority] = useState<"low" | "medium" | "high" | "urgent">("medium");
+  const [storedCustomInstructions, setStoredCustomInstructions] = useState("");
+  const [storedInternSearch, setStoredInternSearch] = useState("");
+  const [storedInternDomainFilter, setStoredInternDomainFilter] = useState("all");
+  const [isAssigningStored, setIsAssigningStored] = useState(false);
+  const [isStoringTasks, setIsStoringTasks] = useState(false);
+  const [storedTaskSearchQuery, setStoredTaskSearchQuery] = useState("");
+  const [storedTaskDomainFilter, setStoredTaskDomainFilter] = useState("all");
+
+  // Cohort Rollover State
+  const [rolloverModalOpen, setRolloverModalOpen] = useState(false);
+  const [rolloverStep, setRolloverStep] = useState<1 | 2>(1);
+  const [selectedVerifiedTaskIds, setSelectedVerifiedTaskIds] = useState<string[]>([]);
+  const [targetCohort, setTargetCohort] = useState("Cohort September 2026");
+  const [selectedTargetInternIds, setSelectedTargetInternIds] = useState<string[]>([]);
+  const [targetDueDate, setTargetDueDate] = useState("");
+  const [targetPriority, setTargetPriority] = useState<"low" | "medium" | "high" | "urgent">("medium");
+  const [targetDomain, setTargetDomain] = useState<string>("all");
+  const [customCohortInstructions, setCustomCohortInstructions] = useState("");
+  const [notifyInterns, setNotifyInterns] = useState(true);
+  const [isRolloverLoading, setIsRolloverLoading] = useState(false);
+  const [internSearchQuery, setInternSearchQuery] = useState("");
+  const [internDomainFilter, setInternDomainFilter] = useState("all");
+  const [verifiedTaskSearchQuery, setVerifiedTaskSearchQuery] = useState("");
+  const [verifiedTaskDomainFilter, setVerifiedTaskDomainFilter] = useState("all");
+  const [onlyVerifiedFilter, setOnlyVerifiedFilter] = useState(true);
+
+  const toggleExpand = (key: string) => {
+    setExpandedGroups(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  
+  // Bulk Selection State
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [bulkDueDate, setBulkDueDate] = useState("");
+
+  // Review modal state
+  const [selectedTaskForReview, setSelectedTaskForReview] = useState<any>(null);
+  const [adminRemarks, setAdminRemarks] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [taskDetailModal, setTaskDetailModal] = useState<any>(null);
+  const [viewDensity, setViewDensity] = useState<"compact" | "expanded">("compact");
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+
+  // Task Status Email & Multi-Recipient Notification State
+  interface TaskEmailRecipient {
+    id: string;
+    taskId?: string;
+    name: string;
+    email: string;
+    phone: string;
+    selected: boolean;
+  }
+
+  const [taskEmailModalOpen, setTaskEmailModalOpen] = useState(false);
+  const [isSendingTaskEmail, setIsSendingTaskEmail] = useState(false);
+  const [taskEmailRecipients, setTaskEmailRecipients] = useState<TaskEmailRecipient[]>([]);
+  const [taskEmailForm, setTaskEmailForm] = useState({
+    task_title: "",
+    task_status: "assigned", // 'assigned' | 'completed' | 'changes_requested' | 'submitted' | 'deadline_reminder'
+    mentor_remarks: "",
+    custom_subject: "",
+    due_date: "",
+    credits: 10,
+  });
+
+  async function openTaskEmailModal(t: any, defaultStatus?: string, group?: any[]) {
+    // Determine all candidate rows (either full team group or single task)
+    const membersList = (Array.isArray(group) && group.length > 0) ? group : [t];
+
+    const recipients: TaskEmailRecipient[] = membersList.map((m: any) => {
+      const profile = m.assigned_profile || {};
+      const email = profile.email || m.assigned_email || "";
+      const name = profile.full_name || profile.name || m.assigned_name || (email ? email.split("@")[0] : "Intern Candidate");
+      const phone = profile.phone || profile.phone_number || profile.mobile || profile.whatsapp || "";
+      const targetId = m.assigned_to || m.target_user_id || m.user_id || profile.id || "";
+      return {
+        id: targetId,
+        taskId: m.id,
+        name,
+        email,
+        phone,
+        selected: true,
+      };
+    });
+
+    // Auto-fetch intern phone numbers & names from profiles table if missing
+    const missingTargetIds = recipients.filter((r) => (!r.phone || !r.name || !r.email) && r.id).map((r) => r.id);
+    if (missingTargetIds.length > 0) {
+      try {
+        const { data: pList } = await supabase
+          .from("profiles")
+          .select("id, full_name, email, phone, phone_number")
+          .in("id", missingTargetIds);
+        if (pList && pList.length > 0) {
+          pList.forEach((p: any) => {
+            const target = recipients.find((r) => r.id === p.id);
+            if (target) {
+              if (!target.name && p.full_name) target.name = p.full_name;
+              if (!target.email && p.email) target.email = p.email;
+              if (!target.phone) target.phone = p.phone || p.phone_number || "";
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("[openTaskEmailModal] Phone auto-fetch error:", err);
+      }
+    }
+
+    setTaskEmailRecipients(recipients);
+    setTaskEmailForm({
+      task_title: t.title || "Internship Project Milestone",
+      task_status: defaultStatus || t.status || "assigned",
+      mentor_remarks: t.progress_notes || t.mentor_report || "",
+      custom_subject: "",
+      due_date: t.due_date || "",
+      credits: t.credits || 10,
+    });
+    setTaskEmailModalOpen(true);
+  }
+
+  async function handleSendTaskEmailSubmit() {
+    const selectedRecipients = taskEmailRecipients.filter((r) => r.selected && r.email?.trim());
+    if (selectedRecipients.length === 0) {
+      return toast.error("Please select at least one intern with a valid email address.");
+    }
+    setIsSendingTaskEmail(true);
+    let sentCount = 0;
+    const errors: string[] = [];
+
+    try {
+      await Promise.allSettled(
+        selectedRecipients.map(async (r) => {
+          try {
+            await doSendTaskEmail({
+              data: {
+                recipient_email: r.email.trim(),
+                recipient_name: r.name.trim(),
+                task_title: taskEmailForm.task_title,
+                task_status: taskEmailForm.task_status,
+                mentor_remarks: taskEmailForm.mentor_remarks,
+                custom_subject: taskEmailForm.custom_subject || undefined,
+                due_date: taskEmailForm.due_date || undefined,
+                credits: taskEmailForm.credits,
+              },
+            });
+            if (r.taskId) {
+              try {
+                await doSendNotification({ data: { taskId: r.taskId } });
+              } catch {
+                // Ignore in-app notification error
+              }
+            }
+            sentCount++;
+          } catch (err: any) {
+            errors.push(`${r.name} (${r.email}): ${err.message}`);
+          }
+        })
+      );
+
+      if (sentCount > 0) {
+        toast.success(
+          `Task status email dispatched to ${sentCount} ${sentCount === 1 ? "intern" : "team members"}!`
+        );
+        setTaskEmailModalOpen(false);
+      }
+      if (errors.length > 0) {
+        toast.error(`Failed sending to ${errors.length} intern(s): ${errors[0]}`);
+      }
+    } finally {
+      setIsSendingTaskEmail(false);
+    }
+  }
+
+  async function handleSendTaskWhatsAppSubmit(targetRecipient?: TaskEmailRecipient) {
+    const r = targetRecipient || taskEmailRecipients.find((x) => x.selected && x.phone) || taskEmailRecipients[0];
+    if (!r || !r.phone || !r.phone.trim()) {
+      return toast.error("Please enter a valid WhatsApp phone number for this intern.");
+    }
+    try {
+      const res = await doGenTaskWhatsApp({
+        data: {
+          recipientPhone: r.phone.trim(),
+          recipientName: r.name,
+          taskTitle: taskEmailForm.task_title,
+          taskStatus: taskEmailForm.task_status,
+          remarks: taskEmailForm.mentor_remarks,
+        },
+      });
+      window.open(res.whatsappUrl, "_blank");
+      toast.success(`WhatsApp status notification opened for ${r.name}!`);
+    } catch (err: any) {
+      toast.error("Failed to generate WhatsApp: " + err.message);
+    }
+  }
+
+  // Realtime Supabase WebSocket subscription for instant push updates on tasks, profiles, & deliverables
+  useEffect(() => {
+    let channel: any = null;
+    try {
+      channel = supabase
+        .channel(`admin-intern-tasks-realtime-ws-${Math.random().toString(36).slice(2, 8)}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "tasks" },
+          () => {
+            qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+            qc.invalidateQueries({ queryKey: ["tasks"] });
+            qc.invalidateQueries({ queryKey: ["my-tasks"] });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "profiles" },
+          () => {
+            qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+            qc.invalidateQueries({ queryKey: ["team-members"] });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "deliverables" },
+          () => {
+            qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+          }
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn("[AdminInternTasksView] Supabase Realtime subscription error:", err);
+    }
+
+    return () => {
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, [qc]);
+
+  const tasksQ = useQuery({
+    queryKey: ["admin-intern-tasks"],
+    queryFn: () => fetchTasks(),
+    refetchInterval: 5000, // Live poll task progress every 5 seconds as fallback
+  });
+
+  const tasks: any[] = tasksQ.data || [];
+
+  // Split tasks into Active Assigned vs Stored Future Repository
+  const activeAssignedTasks = tasks.filter((t) => t && (t.assigned_to || t.team_id || t.assignment_mode === 'team') && !t.is_pool_task);
+  const pendingSubmissions = tasks.filter((t) => t && t.status === "submitted");
+  const reviewedTasks = tasks.filter((t) => t && (t.status === "completed" || t.status === "under_review" || t.status === "rejected" || t.is_verified === true));
+  const storedBankTasks = tasks.filter((t) => t && (!t.assigned_to || t.is_pool_task));
+
+  // Filter Active Assigned Tasks
+  const filteredTasks = activeAssignedTasks.filter((t) => {
+    if (!t) return false;
+    const internName = t.assigned_profile?.full_name || t.assigned_profile?.email || "";
+    const title = t.title || "";
+    const description = t.description || "";
+    const searchLower = (searchQuery || "").toLowerCase();
+    
+    const titleMatches = !searchLower || 
+                         title.toLowerCase().includes(searchLower) ||
+                         internName.toLowerCase().includes(searchLower) ||
+                         description.toLowerCase().includes(searchLower);
+
+    const statusMatches = statusFilter === "all" || t.status === statusFilter;
+    const priorityMatches = priorityFilter === "all" || t.priority === priorityFilter;
+
+    return titleMatches && statusMatches && priorityMatches;
+  });
+
+  // Filter Stored Bank Tasks
+  const filteredSubmissions = pendingSubmissions.filter((t) => {
+    if (!t) return false;
+    const internName = t.assigned_profile?.full_name || t.assigned_profile?.email || "";
+    const title = t.title || "";
+    const searchLower = (searchQuery || "").toLowerCase();
+    return !searchLower || title.toLowerCase().includes(searchLower) || internName.toLowerCase().includes(searchLower);
+  });
+
+  const filteredStoredTasks = storedBankTasks.filter((t) => {
+    if (!t) return false;
+    const title = t.title || "";
+    const description = t.description || "";
+    const searchLower = (storedTaskSearchQuery || "").toLowerCase();
+    const titleMatches = !searchLower || title.toLowerCase().includes(searchLower) || description.toLowerCase().includes(searchLower);
+    const domainMatches = storedTaskDomainFilter === "all" || (t.task_domain || "").toLowerCase() === storedTaskDomainFilter.toLowerCase();
+    return titleMatches && domainMatches;
+  });
+
+  // Group active tasks safely: team tasks grouped by team_id or title, batch assignments grouped by title & date
+  const groupedTasks = filteredTasks.reduce((acc, t) => {
+    if (!t) return acc;
+    const isTeam = Boolean(
+      t.team_id || 
+      t.assignment_mode === "team" || 
+      t.team_name ||
+      (Array.isArray(t.team_member_names) && t.team_member_names.length > 1) ||
+      (t.description && (t.description.includes("[👥 Team:") || t.description.includes("[TeamId:")))
+    );
+    // If team task, group all member rows into ONE entry by team_id or normalized title (without timestamp so all additions group together)
+    const key = t.team_id 
+      ? `team-${t.team_id}` 
+      : isTeam 
+        ? `team-${(t.title || 'Untitled').trim().toLowerCase()}`
+        : `${t.title || 'Untitled'}-${t.created_at || 'date'}`;
+
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(t);
+    return acc;
+  }, {} as Record<string, any[]>);
+  
+  const groupedTaskEntries = (Object.values(groupedTasks) as any[][]).sort((a, b) => {
+    const timeB = b?.[0]?.created_at ? new Date(b[0].created_at).getTime() : 0;
+    const timeA = a?.[0]?.created_at ? new Date(a[0].created_at).getTime() : 0;
+    return timeB - timeA;
+  });
+
+  // Calculate statistics safely for active tasks
+  const totalCount = activeAssignedTasks.length;
+  const inProgressCount = activeAssignedTasks.filter((t) => t?.status === "in_progress").length;
+  const submittedCount = activeAssignedTasks.filter((t) => t?.status === "submitted" || t?.deliverable_url).length;
+  const completedCount = activeAssignedTasks.filter((t) => 
+    t?.status === "completed" || 
+    t?.status === "verified" || 
+    t?.status === "approved" || 
+    t?.status === "done" || 
+    t?.status === "resolved" || 
+    t?.is_verified === true
+  ).length;
+
+  const handleUpdateStatus = async (taskId: string, newStatus: any, remarks?: string) => {
+    try {
+      await doReview({
+        data: {
+          taskId,
+          status: newStatus,
+          admin_remarks: remarks,
+        },
+      });
+      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+      toast.success(`Task status updated to ${newStatus}`);
+      setSelectedTaskForReview(null);
+    } catch (err: any) {
+      toast.error("Failed to update task: " + err.message);
+    }
+  };
+
+  const handleDownloadMarksheet = async (intern: any, internTasks: any[], totalCredits: number, internCbtSubs: any[] = []) => {
+    try {
+      toast.info("Generating Experience Marksheet...");
+      const { generateExperienceMarksheetPdf } = await import("@/lib/marksheetGenerator");
+      
+      let signatureBase64: string | null = null;
+      try {
+        const { urlToBase64 } = await import("@/lib/nocGenerator");
+        signatureBase64 = await urlToBase64("/signature.png", 260, 80, true);
+      } catch (sigErr) {
+        console.warn("Could not load signature for marksheet:", sigErr);
+      }
+
+      const STANDARD_MILESTONES = [
+        "Task 1: Initial Milestone & Onboarding Task",
+        "Task 2: Core Domain Task",
+        "Task 3: Intermediate Project Task",
+        "Task 4: Advanced Technical Implementation",
+        "Task 5: System Integration & Evaluation",
+        "Task 6: Pre-Deployment Audit Task",
+        "Final Capstone Project: Enterprise Delivery"
+      ];
+
+      const mappedTasks = STANDARD_MILESTONES.map((defaultTitle, index) => {
+        const matchingTask = (internTasks || [])[index];
+        const matchingCbt = (internCbtSubs || []).find((s: any) => s.intern_id === intern.id || (s.profiles && s.profiles.email === intern.email));
+        const cbtScoreStr = matchingCbt ? `${matchingCbt.score || 0}% (${matchingCbt.passed ? 'Passed' : 'Completed'})` : "N/A";
+
+        return {
+          milestone: index === 6 ? "Final Project" : `Task ${index + 1}`,
+          title: matchingTask ? matchingTask.title : defaultTitle,
+          domain: matchingTask?.task_domain || intern.department || "Technology",
+          status: matchingTask ? matchingTask.status : "pending",
+          credits: matchingTask ? (matchingTask.credits || 10) : 0,
+          cbtScore: cbtScoreStr,
+          completedAt: matchingTask?.completed_at ? new Date(matchingTask.completed_at).toLocaleDateString() : "N/A"
+        };
+      });
+
+      const doc = generateExperienceMarksheetPdf({
+        candidateName: intern.full_name || "Intern",
+        internId: intern.intern_id || "N/A",
+        domainName: intern.department || "Technology",
+        startDate: intern.created_at ? new Date(intern.created_at).toLocaleDateString() : "N/A",
+        endDate: new Date().toLocaleDateString(),
+        issueDate: new Date().toLocaleDateString(),
+        tasks: mappedTasks,
+        totalCredits: totalCredits,
+        maxCredits: Math.max(totalCredits, 100),
+        grade: totalCredits >= 90 ? "A+" : totalCredits >= 70 ? "A" : totalCredits >= 50 ? "B" : "C",
+        signatureBase64: signatureBase64,
+      });
+      
+      doc.save(`Experience_Marksheet_${intern.full_name?.replace(/\s+/g, "_")}.pdf`);
+      toast.success("Knowledge & Work Experience Marksheet generated!");
+    } catch (err: any) {
+      toast.error("Failed to generate marksheet: " + err.message);
+    }
+  };
+
+  const handleUpdateTeamStatus = async (taskIds: string[], newStatus: any) => {
+    try {
+      for (const id of taskIds) {
+        await doReview({
+          data: {
+            taskId: id,
+            status: newStatus,
+          },
+        });
+      }
+      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+      toast.success(`Team task marked as ${newStatus} for all members.`);
+    } catch (err: any) {
+      toast.error("Failed to update team task: " + err.message);
+    }
+  };
+
+  const handleDeleteBatch = async (title: string, created_at: string) => {
+    if (!confirm(`Are you sure you want to delete this mass-assigned task? This will delete it for ALL assigned interns.`)) return;
+    try {
+      await doDeleteBatch({ data: { title, created_at } });
+      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+      toast.success("Batch deleted successfully.");
+    } catch (err: any) {
+      toast.error("Failed to delete batch: " + err.message);
+    }
+  };
+
+  const handleDeleteTeamTask = async (taskIds: string[], teamTitle?: string) => {
+    if (!confirm(`Are you sure you want to delete this collaborative team task "${teamTitle || ''}"? This will delete it for all assigned team members.`)) return;
+    try {
+      for (const id of taskIds) {
+        await doDelete({ data: { id } });
+      }
+      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      toast.success("Team task deleted successfully.");
+    } catch (err: any) {
+      toast.error("Failed to delete team task: " + err.message);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm("Are you sure you want to delete this task?")) return;
+    try {
+      await doDelete({ data: { id: taskId } });
+      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+      toast.success("Task deleted successfully");
+    } catch (err: any) {
+      toast.error("Failed to delete task: " + err.message);
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedTaskIds(filteredTasks.map(t => t.id));
+    } else {
+      setSelectedTaskIds([]);
+    }
+  };
+
+  const handleToggleSelect = (taskId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedTaskIds(prev => [...prev, taskId]);
+    } else {
+      setSelectedTaskIds(prev => prev.filter(id => id !== taskId));
+    }
+  };
+
+    const handleBulkUpdateDueDate = async () => {
+    if (!bulkDueDate || selectedTaskIds.length === 0) {
+      toast.error("Please select tasks and a due date first");
+      return;
+    }
+    try {
+      await doBulkUpdateTasks({ data: { taskIds: selectedTaskIds, due_date: bulkDueDate } });
+      toast.success("Due dates updated successfully!");
+      setSelectedTaskIds([]);
+      setBulkDueDate("");
+      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update tasks");
+    }
+  };
+
+  
+  // Helper to safely render drive links or standard links in an iframe
+  const getPreviewUrl = (url: string) => {
+    if (!url) return "";
+    if (url.includes("drive.google.com/file/d/")) {
+      return url.replace(/\/view.*$/, "/preview");
+    }
+    return url;
+  };
+
+
+  const handleInlineDeadlineUpdate = async (taskId: string) => {
+    if (!inlineDueDate) return;
+    try {
+      await doBulkUpdateTasks({ data: { taskIds: [taskId], due_date: inlineDueDate } });
+      toast.success("Deadline updated successfully!");
+      setEditingDeadlineTaskId(null);
+      setInlineDueDate("");
+      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update deadline");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTaskIds.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedTaskIds.length} selected task(s)?`)) return;
+    
+    try {
+      await doBulkDelete({ data: { taskIds: selectedTaskIds } });
+      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+      setSelectedTaskIds([]);
+      toast.success(`${selectedTaskIds.length} tasks deleted successfully.`);
+    } catch (err: any) {
+      toast.error("Failed to delete tasks: " + err.message);
+    }
+  };
+
+  const handleClearAllTasks = async () => {
+    try {
+      await doClearAllTasks();
+      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+      toast.success("All intern tasks have been cleared.");
+      setClearAllModalOpen(false);
+    } catch (err: any) {
+      toast.error("Failed to clear tasks: " + err.message);
+    }
+  };
+
+  const handleExtractAll = () => {
+    const tasksToExtract = selectedTaskIds.length > 0 
+      ? filteredTasks.filter(t => selectedTaskIds.includes(t.id)) 
+      : filteredTasks;
+      
+    if (tasksToExtract.length === 0) {
+      toast.error("No tasks to extract.");
+      return;
+    }
+
+    const headers = ["Intern Name", "Intern Email", "Task Title", "Status", "Priority", "Assigned Date", "Deadline", "Task Description"];
+    const rows = tasksToExtract.map(t => [
+      `"${t.assigned_profile?.full_name || ''}"`,
+      `"${t.assigned_profile?.email || ''}"`,
+      `"${(t.title || '').replace(/"/g, '""')}"`,
+      `"${t.status || ''}"`,
+      `"${t.priority || ''}"`,
+      `"${new Date(t.created_at).toLocaleDateString()}"`,
+      `"${t.due_date || 'N/A'}"`,
+      `"${(t.description || '').replace(/"/g, '""')}"`
+    ]);
+    
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `intern_tasks_export_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success("Tasks exported to CSV successfully.");
+  };
+
+  const internsQ = useQuery({
+    queryKey: ["active-interns-for-cohort"],
+    queryFn: () => fetchActiveInterns(),
+  });
+  const allActiveInterns: any[] = internsQ.data || [];
+
+  const firstInternId = internsQ.data?.[0]?.id;
+  // Auto-select first intern if none is selected
+  useEffect(() => {
+    if (!selectedMatrixInternId && firstInternId) {
+      setSelectedMatrixInternId(firstInternId);
+    }
+  }, [firstInternId, selectedMatrixInternId]);
+
+  const handleMoveToStoredBank = async (taskIds: string[]) => {
+    if (!taskIds || taskIds.length === 0) {
+      return toast.error("Please select at least one task to move to Stored Bank.");
+    }
+    if (!confirm(`Are you sure you want to move ${taskIds.length} task(s) to the Stored Bank for future use? They will be unassigned from current interns and preserved in the repository.`)) {
+      return;
+    }
+    setIsStoringTasks(true);
+    try {
+      await doMoveToStoredBank({ data: { taskIds } });
+      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+      setSelectedTaskIds([]);
+      toast.success(`Successfully moved ${taskIds.length} task(s) to Stored Task Bank (For Future Use)!`);
+    } catch (err: any) {
+      toast.error("Failed to move tasks to store: " + err.message);
+    } finally {
+      setIsStoringTasks(false);
+    }
+  };
+
+  const handleAssignStoredTasksSubmit = async () => {
+    if (selectedStoredTaskIds.length === 0) {
+      return toast.error("Please select at least one stored task to assign.");
+    }
+    if (storedTargetInternIds.length === 0) {
+      return toast.error("Please select at least one intern to assign the task(s) to.");
+    }
+    setIsAssigningStored(true);
+    try {
+      const res = await doAssignStoredTasks({
+        data: {
+          storedTaskIds: selectedStoredTaskIds,
+          targetInternIds: storedTargetInternIds,
+          dueDate: storedDueDate || null,
+          priority: storedPriority,
+          customInstructions: storedCustomInstructions || null,
+          notifyInterns: true,
+        },
+      });
+      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+      toast.success(`Assigned ${res.assignedCount} task(s) to ${res.internCount} intern(s) successfully!`);
+      setAssignStoredModalOpen(false);
+      setSelectedStoredTaskIds([]);
+      setStoredTargetInternIds([]);
+    } catch (err: any) {
+      toast.error("Failed to assign stored tasks: " + err.message);
+    } finally {
+      setIsAssigningStored(false);
+    }
+  };
+
+  const handleExecuteRollover = async () => {
+    if (selectedVerifiedTaskIds.length === 0) {
+      return toast.error("Please select at least one task to rollover.");
+    }
+    if (!targetCohort.trim()) {
+      return toast.error("Please enter the target cohort name.");
+    }
+    setIsRolloverLoading(true);
+    try {
+      const res = await doRollover({
+        data: {
+          sourceTaskIds: selectedVerifiedTaskIds,
+          targetCohort: targetCohort.trim(),
+          targetInternIds: selectedTargetInternIds,
+          dueDate: targetDueDate || null,
+          priority: targetPriority,
+          taskDomain: targetDomain === "all" ? null : targetDomain,
+          customInstructions: customCohortInstructions || null,
+          notifyInterns,
+        }
+      });
+      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+      toast.success(`Successfully rolled over ${res.clonedTaskCount} task(s) for ${res.assignedInternCount} intern(s) in ${res.targetCohort}!`);
+      setRolloverModalOpen(false);
+      setSelectedVerifiedTaskIds([]);
+      setSelectedTargetInternIds([]);
+    } catch (err: any) {
+      toast.error("Failed to rollover tasks: " + err.message);
+    } finally {
+      setIsRolloverLoading(false);
+    }
+  };
+
+  const allVerifiedTasks = tasks.filter((t) => {
+    if (!t) return false;
+    if (onlyVerifiedFilter) {
+      return t.status === "completed" || t.is_verified === true || t.status === "submitted";
+    }
+    return true;
+  });
+
+  const filteredVerifiedTasks = allVerifiedTasks.filter((t) => {
+    const titleMatch = !verifiedTaskSearchQuery || 
+      (t.title || "").toLowerCase().includes(verifiedTaskSearchQuery.toLowerCase()) ||
+      (t.description || "").toLowerCase().includes(verifiedTaskSearchQuery.toLowerCase());
+    const domainMatch = verifiedTaskDomainFilter === "all" || (t.task_domain || "").toLowerCase() === verifiedTaskDomainFilter.toLowerCase();
+    return titleMatch && domainMatch;
+  });
+
+  const filteredTargetInterns = allActiveInterns.filter((intern) => {
+    const searchLower = internSearchQuery.toLowerCase();
+    const matchesSearch = !searchLower ||
+      (intern.full_name || "").toLowerCase().includes(searchLower) ||
+      (intern.email || "").toLowerCase().includes(searchLower) ||
+      (intern.intern_id || "").toLowerCase().includes(searchLower) ||
+      (intern.department || "").toLowerCase().includes(searchLower);
+    const matchesDomain = internDomainFilter === "all" ||
+      (intern.department || intern.domain || "").toLowerCase().includes(internDomainFilter.toLowerCase());
+    return matchesSearch && matchesDomain;
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* ─── Institutional Header & ISO Regulatory Banner (Directory & Users Grade) ─── */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="h-7 px-2.5 rounded-md bg-slate-900 text-white font-mono text-[10px] font-bold tracking-widest uppercase flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-white" /> ISO/IEC 27001 AUDIT READY
+              </span>
+              <span className="h-7 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-800 font-mono text-[10px] font-semibold tracking-wider uppercase flex items-center gap-1.5">
+                <ClipboardList className="h-3.5 w-3.5 text-slate-700" /> SPRINT DELIVERABLES &amp; LMS
+              </span>
+              <span className="h-7 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-800 font-mono text-[10px] font-semibold flex items-center gap-1.5">
+                {tasks.length} REGISTERED MILESTONES
+              </span>
+            </div>
+            <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900">
+              Institutional Tasks &amp; LMS Milestone Governance
+            </h1>
+            <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
+              Enterprise sprint milestone tracking, deliverable verification queues, mentor evaluations, and auditable credit distribution for internship associates.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 self-start md:self-center shrink-0">
+            <Button
+              type="button"
+              onClick={() => setAssignModalOpen(true)}
+              className="bg-slate-900 text-white hover:bg-black font-semibold text-xs h-9 px-4 rounded-lg shadow-xs flex items-center gap-2 transition-all cursor-pointer"
+            >
+              <Plus className="h-4 w-4 text-white" />
+              <span>Assign Tasks (CSV / Manual)</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={async () => {
+                const completedIds = activeAssignedTasks
+                  .filter(t => t.status === 'completed' || t.is_verified)
+                  .map(t => t.id);
+                if (completedIds.length === 0) {
+                  return toast.info("No completed tasks found in active list to move.");
+                }
+                await handleMoveToStoredBank(completedIds);
+              }}
+              className="border-slate-300 text-slate-800 hover:bg-slate-100 font-semibold text-xs h-9 px-3 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <FolderArchive className="h-3.5 w-3.5 text-slate-700" />
+              <span>Move to Stored Bank</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] })}
+              className="border-slate-300 text-slate-800 hover:bg-slate-100 font-semibold text-xs h-9 px-3 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${tasksQ.isLoading ? "animate-spin" : ""}`} />
+              <span>Sync Milestones</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* ─── Metric Cards Grid (Matching Directory & Users) ─── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-100">
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-[10px] font-mono uppercase tracking-wider font-bold">
+                Total Tracked Tasks
+              </span>
+              <ClipboardList className="h-4 w-4 text-slate-900" />
+            </div>
+            <div>
+              <div className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+                {tasks.length}
+              </div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                Active sprint deliverables &amp; projects
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-[10px] font-mono uppercase tracking-wider font-bold">
+                In Progress Milestones
+              </span>
+              <Clock className="h-4 w-4 text-slate-900" />
+            </div>
+            <div>
+              <div className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+                {inProgressCount}
+              </div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                Live engineering milestones being coded
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-[10px] font-mono uppercase tracking-wider font-bold">
+                Pending Reviews
+              </span>
+              <Sparkles className="h-4 w-4 text-slate-900" />
+            </div>
+            <div>
+              <div className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+                {pendingSubmissions.length}
+              </div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                Deliverables awaiting mentor verification
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-[10px] font-mono uppercase tracking-wider font-bold">
+                Verified &amp; Completed
+              </span>
+              <CheckCircle2 className="h-4 w-4 text-slate-900" />
+            </div>
+            <div>
+              <div className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+                {completedCount}
+              </div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                Completed deliverables archived
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Filter & Command Rail (Matching Directory & Users) ─── */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Main View Tabs */}
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 border border-slate-200 text-xs font-semibold self-start flex-wrap">
+            <button
+              type="button"
+              onClick={() => setActiveViewTab("active")}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeViewTab === "active"
+                  ? "bg-slate-900 text-white shadow-xs font-bold"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+              }`}
+            >
+              <ClipboardList className="h-3.5 w-3.5" />
+              <span>Active Tasks ({activeAssignedTasks.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveViewTab("submissions")}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeViewTab === "submissions"
+                  ? "bg-slate-900 text-white shadow-xs font-bold"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+              }`}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Pending Submissions ({pendingSubmissions.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveViewTab("reviewed")}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeViewTab === "reviewed"
+                  ? "bg-slate-900 text-white shadow-xs font-bold"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+              }`}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span>Reviewed ({reviewedTasks.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveViewTab("stored_bank")}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeViewTab === "stored_bank"
+                  ? "bg-slate-900 text-white shadow-xs font-bold"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+              }`}
+            >
+              <FolderArchive className="h-3.5 w-3.5" />
+              <span>Stored Bank ({storedBankTasks.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveViewTab("intern_points")}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeViewTab === "intern_points"
+                  ? "bg-slate-900 text-white shadow-xs font-bold"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+              }`}
+            >
+              <Award className="h-3.5 w-3.5" />
+              <span>Points Matrix</span>
+            </button>
+          </div>
+
+          {/* Search Box & View Mode Toggle (Table / Cards) */}
+          <div className="flex items-center gap-2 w-full lg:w-auto">
+            <div className="relative flex-1 lg:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <Input
+                type="text"
+                placeholder="Search milestone title, associate, ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9 text-xs border-slate-200 bg-slate-50 focus:bg-white rounded-lg font-medium"
+              />
+            </div>
+
+            <div className="flex items-center p-1 rounded-lg border border-slate-200 bg-slate-50 shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                title="Data Table View"
+                className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+                  viewMode === "table"
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("cards")}
+                title="Card Grid View"
+                className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+                  viewMode === "cards"
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Secondary Filters & Bulk Actions */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 text-xs">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Status Filter */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-bold">
+                Status:
+              </span>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-8 text-xs border-slate-200 bg-slate-50 w-36 rounded-lg font-medium">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending Start</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="submitted">Submitted</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Priority Filter */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-bold">
+                Priority:
+              </span>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="h-8 text-xs border-slate-200 bg-slate-50 w-32 rounded-lg font-medium">
+                  <SelectValue placeholder="All Priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Select All */}
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+              <Checkbox 
+                id="select-all" 
+                checked={filteredTasks.length > 0 && selectedTaskIds.length === filteredTasks.length} 
+                onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+              />
+              <label htmlFor="select-all" className="text-xs font-semibold cursor-pointer text-slate-700">
+                Select All <span className="text-slate-400 font-mono">({selectedTaskIds.length})</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Bulk Action Buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {selectedTaskIds.length > 0 && (
+              <>
+                <Input type="date" value={bulkDueDate} onChange={(e) => setBulkDueDate(e.target.value)} className="h-8 text-xs w-[125px] rounded-lg" />
+                <Button size="sm" onClick={handleBulkUpdateDueDate} className="h-8 text-xs font-semibold bg-slate-900 hover:bg-black text-white rounded-lg shadow-xs cursor-pointer">
+                  Update Due Date
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={() => handleMoveToStoredBank(selectedTaskIds)} 
+                  className="h-8 text-xs font-semibold bg-slate-900 hover:bg-black text-white rounded-lg shadow-xs gap-1 cursor-pointer"
+                >
+                  <FolderArchive className="h-3.5 w-3.5" /> Move to Bank ({selectedTaskIds.length})
+                </Button>
+                <Button size="sm" variant="destructive" onClick={handleBulkDelete} className="h-8 text-xs font-semibold rounded-lg cursor-pointer">
+                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                </Button>
+              </>
+            )}
+            <Button size="sm" variant="outline" onClick={handleExtractAll} className="h-8 text-xs font-semibold border-slate-300 text-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer">
+              <Download className="h-3.5 w-3.5 mr-1 text-slate-700" /> Export CSV
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setClearAllModalOpen(true)} className="h-8 text-xs font-semibold border-slate-300 text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer">
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Clear All
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── MAIN CONTENT VIEW (Active / Submissions / Reviewed / Stored / Points) ─── */}
+      {activeViewTab === "active" && (
+        viewMode === "table" ? (
+          /* ─── High-Density Table View ─── */
+          <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-100/70 border-b border-slate-200 text-[10px] uppercase font-mono font-bold tracking-wider text-slate-700">
+                    <th className="px-4 py-3 w-10">
+                      <Checkbox 
+                        checked={filteredTasks.length > 0 && selectedTaskIds.length === filteredTasks.length} 
+                        onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                      />
+                    </th>
+                    <th className="px-5 py-3">Milestone Title &amp; Track</th>
+                    <th className="px-5 py-3">Assigned Associate</th>
+                    <th className="px-5 py-3">Target Deadline</th>
+                    <th className="px-5 py-3">Credits &amp; Priority</th>
+                    <th className="px-5 py-3">Deliverable Status</th>
+                    <th className="px-5 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                  {filteredTasks.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
+                        No sprint tasks match criteria. Click <strong>Assign Tasks</strong> to provision new milestones.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredTasks.map((t) => {
+                      const internProfile = t.assigned_profile;
+                      const internName = internProfile?.full_name || internProfile?.email || "Assigned Associate";
+                      const isCompleted = t.status === "completed" || t.is_verified;
+                      const isSubmitted = t.status === "submitted" || Boolean(t.deliverable_url);
+
+                      return (
+                        <tr 
+                          key={t.id}
+                          onClick={() => setTaskDetailModal(t)}
+                          className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                        >
+                          <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                            <Checkbox 
+                              checked={selectedTaskIds.includes(t.id)} 
+                              onCheckedChange={(checked) => handleToggleSelect(t.id, checked as boolean)}
+                            />
+                          </td>
+
+                          <td className="px-5 py-3.5">
+                            <div className="min-w-0">
+                              <div className="font-bold text-slate-900 group-hover:underline flex items-center gap-2">
+                                <span>{t.title}</span>
+                                {t.team_name && (
+                                  <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300">
+                                    {t.team_name}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5 font-mono">
+                                <span className="uppercase font-semibold">{t.level || "Core Track"}</span>
+                                {t.task_meet_link && (
+                                  <a 
+                                    href={t.task_meet_link} 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    onClick={(e) => e.stopPropagation()} 
+                                    className="text-slate-900 underline font-bold flex items-center gap-1"
+                                  >
+                                    <Video className="h-3 w-3" /> Meet Link
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-2.5">
+                              <SmartAvatar
+                                src={internProfile?.avatar_url}
+                                alt={internName}
+                                fallbackInitials={(internName || "?")[0]}
+                                className="h-7 w-7 rounded-full border border-slate-200 shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <div className="font-bold text-slate-900 truncate max-w-[170px]">
+                                  {internName}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono truncate">
+                                  {internProfile?.intern_id || internProfile?.email || "—"}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-3.5 font-mono text-xs text-slate-800">
+                            {t.due_date ? (
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5 text-slate-400" />
+                                {t.due_date.split('T')[0]}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </td>
+
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-mono text-xs font-bold text-slate-900">
+                                {t.credits || 10} Cr
+                              </span>
+                              <span className={`text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded ${
+                                t.priority === "high" || t.priority === "urgent"
+                                  ? "bg-slate-900 text-white"
+                                  : "bg-slate-100 text-slate-700 border border-slate-300"
+                              }`}>
+                                {t.priority || "med"}
+                              </span>
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-3.5">
+                            {isCompleted ? (
+                              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-900 text-white inline-flex items-center gap-1">
+                                <Check className="h-3 w-3 text-white" /> Verified
+                              </span>
+                            ) : isSubmitted ? (
+                              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-300 inline-flex items-center gap-1">
+                                <Sparkles className="h-3 w-3 text-slate-900" /> Under Review
+                              </span>
+                            ) : t.status === "in_progress" ? (
+                              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                In Progress
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-mono text-slate-400">
+                                Pending Start
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="px-5 py-3.5 text-right space-x-1" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => setTaskDetailModal(t)}
+                              className="h-8 px-2.5 text-xs font-semibold bg-slate-900 text-white hover:bg-black rounded-lg gap-1.5 cursor-pointer shadow-xs"
+                            >
+                              <Eye className="h-3.5 w-3.5 text-white" /> Open Task
+                            </Button>
+                            {!isCompleted && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleUpdateStatus(t.id, "completed")}
+                                className="h-8 px-2 text-xs font-semibold border-slate-200 text-slate-900 hover:bg-slate-100 rounded-lg cursor-pointer"
+                                title="Approve Milestone"
+                              >
+                                <Check className="h-3.5 w-3.5 text-slate-900" />
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedTaskForReview(t);
+                                setAdminRemarks(t.progress_notes || "");
+                              }}
+                              className="h-8 px-2 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
+                              title="Review Deliverable"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5 text-slate-600" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteTask(t.id)}
+                              className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                              title="Delete Task"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          /* ─── Card Grid View ─── */
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filteredTasks.length === 0 ? (
+              <div className="col-span-full rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center text-slate-400">
+                No sprint tasks match criteria. Click <strong>Assign Tasks</strong> to provision new milestones.
+              </div>
+            ) : (
+              filteredTasks.map((t) => {
+                const internProfile = t.assigned_profile;
+                const internName = internProfile?.full_name || internProfile?.email || "Assigned Associate";
+                const isCompleted = t.status === "completed" || t.is_verified;
+                const isSubmitted = t.status === "submitted" || Boolean(t.deliverable_url);
+
+                return (
+                  <div
+                    key={t.id}
+                    onClick={() => setTaskDetailModal(t)}
+                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:border-slate-400 transition-all flex flex-col justify-between space-y-4 cursor-pointer group"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <SmartAvatar
+                            src={internProfile?.avatar_url}
+                            alt={internName}
+                            fallbackInitials={(internName || "?")[0]}
+                            className="h-10 w-10 rounded-full border border-slate-200 shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <div className="font-bold text-slate-900 group-hover:underline truncate max-w-[180px]">
+                              {internName}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono truncate">
+                              {internProfile?.intern_id || internProfile?.email || "—"}
+                            </div>
+                          </div>
+                        </div>
+
+                        {isCompleted ? (
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-900 text-white shrink-0">
+                            Verified
+                          </span>
+                        ) : isSubmitted ? (
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-300 shrink-0">
+                            Submitted
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+                            {t.status || "Pending"}
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900 leading-snug">
+                          {t.title}
+                        </h3>
+                        {t.description && (
+                          <p className="text-xs text-slate-500 line-clamp-2 mt-1">
+                            {t.description.replace(/[#*_\`\[\]]/g, '')}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                          {t.credits || 10} Credits
+                        </span>
+                        <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                          {t.priority || "med"} Priority
+                        </span>
+                        {t.due_date && (
+                          <span className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> Due {t.due_date.split('T')[0]}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => setTaskDetailModal(t)}
+                        className="h-8 px-3 text-xs font-semibold bg-slate-900 text-white hover:bg-black rounded-lg gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <Eye className="h-3.5 w-3.5 text-white" /> Open Task
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {!isCompleted && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleUpdateStatus(t.id, "completed")}
+                            className="h-8 px-2 text-xs font-semibold border-slate-200 text-slate-900 hover:bg-slate-100 rounded-lg cursor-pointer"
+                            title="Approve Milestone"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTaskForReview(t);
+                            setAdminRemarks(t.progress_notes || "");
+                          }}
+                          className="h-8 px-2 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
+                          title="Review"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )
+      )}
+
+      {/* ─── PENDING SUBMISSIONS VIEW ─── */}
+      {activeViewTab === "submissions" && (
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between gap-4">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-slate-900" /> Pending Submissions Review Queue
+            </h2>
+            <span className="text-xs font-mono text-slate-500 font-bold">{pendingSubmissions.length} PENDING AUDITS</span>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {pendingSubmissions.length === 0 ? (
+              <div className="p-12 text-center text-slate-400 text-xs">
+                No pending submissions in queue. All associate deliverables are up to date!
+              </div>
+            ) : (
+              pendingSubmissions.map((t) => (
+                <div key={t.id} className="p-4 hover:bg-slate-50/80 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-sm text-slate-900">{t.title}</span>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-900 text-white">
+                        Under Review
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-600 flex items-center gap-2">
+                      <User className="h-3 w-3 text-slate-400" />
+                      <span className="font-semibold">{t.assigned_profile?.full_name || "Associate"}</span>
+                      {t.assigned_profile?.intern_id && <span className="font-mono text-[10px] text-slate-400">({t.assigned_profile.intern_id})</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      onClick={() => setTaskDetailModal(t)}
+                      className="bg-slate-900 hover:bg-black text-white text-xs font-semibold h-8 px-3 rounded-lg gap-1.5 shadow-xs cursor-pointer"
+                    >
+                      <Eye className="h-3.5 w-3.5 text-white" /> Inspect &amp; Grade
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── REVIEWED & COMPLETED VIEW ─── */}
+      {activeViewTab === "reviewed" && (
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between gap-4">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-slate-900" /> Reviewed &amp; Completed Milestones
+            </h2>
+            <span className="text-xs font-mono text-slate-500 font-bold">{reviewedTasks.length} ARCHIVED</span>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {reviewedTasks.length === 0 ? (
+              <div className="p-12 text-center text-slate-400 text-xs">
+                No reviewed tasks archived yet.
+              </div>
+            ) : (
+              reviewedTasks.map((t) => (
+                <div key={t.id} className="p-4 hover:bg-slate-50/80 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-sm text-slate-900">{t.title}</span>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-900 text-white">
+                        Verified
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-600">
+                        +{t.credits || 10} Credits Awarded
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-600 flex items-center gap-2">
+                      <User className="h-3 w-3 text-slate-400" />
+                      <span className="font-semibold">{t.assigned_profile?.full_name || "Associate"}</span>
+                      {t.assigned_profile?.intern_id && <span className="font-mono text-[10px] text-slate-400">({t.assigned_profile.intern_id})</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      onClick={() => setTaskDetailModal(t)}
+                      className="bg-slate-900 hover:bg-black text-white text-xs font-semibold h-8 px-3 rounded-lg gap-1.5 shadow-xs cursor-pointer"
+                    >
+                      <Eye className="h-3.5 w-3.5 text-white" /> View Workspace
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeViewTab === "stored_bank" && (
+
+        <div className="space-y-6">
+          {/* Stored Bank Banner */}
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-white dark:bg-slate-950 p-6 rounded-2xl border shadow-sm text-white">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <FolderArchive className="h-6 w-6 text-slate-900" /> Stored Task Bank &amp; Future Repository
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Preserved project tasks and milestone templates ready to be assigned to upcoming cohorts or newly enrolled interns on demand.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <Button
+                onClick={() => {
+                  if (selectedStoredTaskIds.length === 0) {
+                    return toast.error("Please select at least one stored task to assign.");
+                  }
+                  setAssignStoredModalOpen(true);
+                }}
+                disabled={selectedStoredTaskIds.length === 0}
+                className="bg-slate-900 hover:bg-black text-white font-bold shadow-md gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" /> Assign Selected Tasks ({selectedStoredTaskIds.length})
+              </Button>
+              <Button
+                onClick={() => setAssignModalOpen(true)}
+                className="bg-slate-900 hover:bg-black text-white font-semibold shadow-md shrink-0 cursor-pointer"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Create / CSV Import
+              </Button>
+            </div>
+          </div>
+
+          {/* Stored Bank Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-950 p-4 rounded-xl border text-white">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search stored tasks by title or description..."
+                value={storedTaskSearchQuery}
+                onChange={(e) => setStoredTaskSearchQuery(e.target.value)}
+                className="pl-9 text-xs"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Select value={storedTaskDomainFilter} onValueChange={setStoredTaskDomainFilter}>
+                <SelectTrigger className="w-36 text-xs">
+                  <SelectValue placeholder="All Domains" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Domains</SelectItem>
+                  <SelectItem value="tech">Tech / Development</SelectItem>
+                  <SelectItem value="management">Management / Operations</SelectItem>
+                  <SelectItem value="non_tech">Marketing / Sales</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Stored Bank Bulk Actions */}
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-50 dark:bg-slate-900 border rounded-xl p-4 text-white">
+            <div className="flex items-center gap-3">
+              <Checkbox 
+                id="select-all-stored" 
+                checked={filteredStoredTasks.length > 0 && selectedStoredTaskIds.length === filteredStoredTasks.length} 
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setSelectedStoredTaskIds(filteredStoredTasks.map(t => t.id));
+                  } else {
+                    setSelectedStoredTaskIds([]);
+                  }
+                }}
+              />
+              <label htmlFor="select-all-stored" className="text-sm font-medium cursor-pointer text-slate-700 dark:text-slate-300">
+                Select All Stored Tasks <span className="text-slate-500">({selectedStoredTaskIds.length} selected)</span>
+              </label>
+            </div>
+
+            {selectedStoredTaskIds.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => setAssignStoredModalOpen(true)}
+                  className="bg-slate-900 hover:bg-black text-white font-bold text-xs h-8 gap-1.5 shadow-xs cursor-pointer"
+                >
+                  <Send className="h-3.5 w-3.5" /> Assign to Intern(s) ({selectedStoredTaskIds.length})
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={async () => {
+                    if (!confirm(`Delete ${selectedStoredTaskIds.length} stored task(s) from repository?`)) return;
+                    try {
+                      await doBulkDelete({ data: { taskIds: selectedStoredTaskIds } });
+                      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+                      setSelectedStoredTaskIds([]);
+                      toast.success("Tasks deleted from stored repository.");
+                    } catch (e: any) {
+                      toast.error("Failed to delete: " + e.message);
+                    }
+                  }}
+                  className="h-8 text-xs font-semibold cursor-pointer"
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete Selected
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Stored Tasks List */}
+          <div className="rounded-xl border bg-white dark:bg-slate-950 shadow-sm overflow-hidden divide-y text-white">
+            {filteredStoredTasks.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 text-xs space-y-2">
+                <FolderArchive className="h-8 w-8 text-slate-400 mx-auto opacity-60" />
+                <p className="font-semibold text-sm text-slate-700 dark:text-slate-300">No tasks currently in the Stored Bank matching criteria.</p>
+                <p className="text-slate-400">
+                  You can move active tasks here by selecting them and clicking <strong>"Store for Future"</strong>, or import template tasks via CSV.
+                </p>
+              </div>
+            ) : (
+              filteredStoredTasks.map((t) => {
+                const isSelected = selectedStoredTaskIds.includes(t.id);
+                return (
+                  <div key={t.id} className="p-4 sm:p-5 hover:bg-slate-50/60 dark:hover:bg-slate-900/60 transition-colors flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 w-full min-w-0 text-white">
+                    <div className="flex items-start gap-3 flex-1 min-w-0 w-full">
+                      <div className="mt-1 shrink-0">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedStoredTaskIds(prev => [...prev, t.id]);
+                            } else {
+                              setSelectedStoredTaskIds(prev => prev.filter(id => id !== t.id));
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-sm text-slate-900 dark:text-slate-100 break-words">{t.title}</span>
+                          <Badge className="bg-slate-100 text-slate-800 border-slate-300 font-mono text-[10px] flex items-center gap-1 font-bold">
+                            <FolderArchive className="h-3 w-3 text-slate-900" /> Stored in Repository
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] uppercase font-bold text-slate-600">
+                            Priority: {t.priority || "medium"}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] uppercase font-bold text-slate-900 bg-slate-50 border-slate-200">
+                            <CreditCard className="h-3 w-3 text-slate-900 inline mr-1" /> {t.credits || 10} Credits
+                          </Badge>
+                          {t.task_domain && (
+                            <Badge variant="outline" className="text-[10px] uppercase font-bold text-slate-900 bg-slate-50 border-slate-200">
+                              Domain: {t.task_domain}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {t.description && (
+                          <TaskRichDescription description={t.description} teamMembers={t.team_members || t.team_member_names} />
+                        )}
+
+                        <div className="flex items-center gap-3 sm:gap-4 text-[11px] text-slate-400 flex-wrap pt-1">
+                          <span>Created: {new Date(t.created_at).toLocaleDateString()}</span>
+                          {t.task_file_url && (
+                            <a href={t.task_file_url} target="_blank" rel="noreferrer" className="text-slate-900 dark:text-white hover:underline inline-flex items-center gap-1 font-bold">
+                              <FileText className="h-3.5 w-3.5" /> Task Spec/Files
+                            </a>
+                          )}
+                          {t.task_doc_url && (
+                            <a href={t.task_doc_url} target="_blank" rel="noreferrer" className="text-slate-900 dark:text-white hover:underline inline-flex items-center gap-1 font-bold">
+                              <BookOpen className="h-3.5 w-3.5" /> Handbook
+                            </a>
+                          )}
+                          {t.report_template_url && (
+                            <a href={t.report_template_url} target="_blank" rel="noreferrer" className="text-orange-600 dark:text-orange-400 hover:underline inline-flex items-center gap-1 font-bold">
+                              <FileText className="h-3.5 w-3.5" /> Report Template
+                            </a>
+                          )}
+                          {t.ppt_template_url && (
+                            <a href={t.ppt_template_url} target="_blank" rel="noreferrer" className="text-slate-900 dark:text-white hover:underline inline-flex items-center gap-1 font-bold">
+                              <Play className="h-3.5 w-3.5" /> PPT File
+                            </a>
+                          )}
+                          {t.task_meet_link && (
+                            <a href={t.task_meet_link} target="_blank" rel="noreferrer" className="text-slate-900 dark:text-slate-500 hover:underline inline-flex items-center gap-1 font-bold bg-slate-50 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-slate-200 dark:border-blue-800">
+                              <Video className="h-3.5 w-3.5 text-slate-900" /> Meet Link
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full xl:w-auto xl:shrink-0 justify-start xl:justify-end pt-2 xl:pt-0 border-t xl:border-t-0 border-slate-100 dark:border-slate-800">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setSelectedStoredTaskIds([t.id]);
+                          setAssignStoredModalOpen(true);
+                        }}
+                        className="h-8 text-xs font-bold bg-slate-900 hover:bg-black text-white gap-1.5 shadow-xs cursor-pointer"
+                      >
+                        <Send className="h-3.5 w-3.5" /> Pick &amp; Assign to Intern(s)
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 cursor-pointer"
+                        onClick={() => handleDeleteTask(t.id)}
+                        title="Delete from Repository"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeViewTab === "intern_points" && (
+        <div className="space-y-6 w-full max-w-full">
+          {/* Top Selection & Summary Card */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                  <Award className="h-6 w-6 text-slate-900" />
+                  Corporate Intern Curriculum &amp; Points Evaluation Matrix
+                </h2>
+                <p className="text-xs text-slate-500 font-medium mt-1">
+                  Select an intern to view &amp; allocate points for Task 1 through Task 6 + Final Capstone Project and review CBT test evaluation scores.
+                </p>
+              </div>
+
+              {/* Select Intern Dropdown */}
+              <div className="w-full md:w-80">
+                <Select value={selectedMatrixInternId} onValueChange={setSelectedMatrixInternId}>
+                  <SelectTrigger className="w-full bg-slate-50 border-slate-200 font-semibold text-xs h-10">
+                    <SelectValue placeholder="Select an Intern to View Matrix..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allActiveInterns.map((i: any) => (
+                      <SelectItem key={i.id} value={i.id}>
+                        {i.full_name} ({i.intern_id || i.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Quick Intern Summary Table */}
+            <div className="overflow-x-auto rounded-xl border border-slate-200 mt-2">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 border-b text-slate-600 font-bold uppercase text-xs">
+                  <tr>
+                    <th className="px-4 py-3">Intern Name</th>
+                    <th className="px-4 py-3">Reg ID / Email</th>
+                    <th className="px-4 py-3">Completed Tasks</th>
+                    <th className="px-4 py-3 text-right">Total Points</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {allActiveInterns.map((intern: any) => {
+                    const internTasks = (tasks || []).filter((t: any) => 
+                      (t.assigned_to === intern.id) || 
+                      (t.target_user_id === intern.id) || 
+                      (t.team_id && intern.team_id === t.team_id)
+                    );
+                    const completedTasks = internTasks.filter((t: any) => t.status === 'completed');
+                    const totalCredits = completedTasks.reduce((acc: number, t: any) => acc + (t.credits || 10), 0);
+                    const isSelected = selectedMatrixInternId === intern.id;
+
+                    return (
+                      <tr 
+                        key={intern.id} 
+                        className={`hover:bg-slate-50/80 cursor-pointer transition-colors ${isSelected ? "bg-slate-50 font-semibold" : ""}`}
+                        onClick={() => setSelectedMatrixInternId(intern.id)}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="font-bold text-slate-900 flex items-center gap-2">
+                            <User className="h-4 w-4 text-slate-400" />
+                            {intern.full_name}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500 font-mono">
+                          {intern.intern_id || "N/A"} · {intern.email}
+                        </td>
+                        <td className="px-4 py-3 text-slate-900 font-medium">
+                          {completedTasks.length} / {internTasks.length} Tasks
+                        </td>
+                        <td className="px-4 py-3 text-right font-black text-slate-900 text-base">
+                          {totalCredits} <span className="text-xs font-semibold text-slate-400">pts</span>
+                        </td>
+                        <td className="px-4 py-3 text-right space-x-2">
+                          <Button 
+                            size="sm" 
+                            variant={isSelected ? "default" : "outline"}
+                            onClick={(e) => { e.stopPropagation(); setSelectedMatrixInternId(intern.id); }}
+                            className="h-8 text-xs font-bold gap-1"
+                          >
+                            <Eye className="h-3.5 w-3.5" /> View Matrix
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {allActiveInterns.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-slate-500 text-sm">No interns found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Selected Intern Matrix Section */}
+          {(() => {
+            const currentIntern = allActiveInterns.find((i: any) => i.id === selectedMatrixInternId);
+            if (!currentIntern) return null;
+
+            const internTasks = (tasks || []).filter((t: any) => 
+              (t.assigned_to === currentIntern.id) || 
+              (t.target_user_id === currentIntern.id) || 
+              (t.team_id && currentIntern.team_id === t.team_id)
+            );
+            const completedTasks = internTasks.filter((t: any) => t.status === 'completed');
+            const totalCredits = completedTasks.reduce((acc: number, t: any) => acc + (t.credits || 10), 0);
+            const internCbtSubs = (allCbtSubmissions || []).filter((s: any) => s.intern_id === currentIntern.id || (s.profiles && s.profiles.email === currentIntern.email));
+
+            const STANDARD_CURRICULUM = [
+              { name: "Task 1", label: "Task 1: Initial Milestone & Onboarding Task" },
+              { name: "Task 2", label: "Task 2: Core Domain Task" },
+              { name: "Task 3", label: "Task 3: Intermediate Project Task" },
+              { name: "Task 4", label: "Task 4: Advanced Technical Implementation" },
+              { name: "Task 5", label: "Task 5: System Integration & Evaluation" },
+              { name: "Task 6", label: "Task 6: Pre-Deployment Audit Task" },
+              { name: "Final Project", label: "Final Capstone Project: Enterprise Delivery" }
+            ];
+
+            return (
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-md space-y-5 animate-in fade-in duration-300">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-900 bg-slate-50 border border-slate-200 px-2.5 py-0.5 rounded-full">
+                      Intern Evaluation Matrix
+                    </span>
+                    <h3 className="text-xl font-black text-slate-900 mt-1 flex items-center gap-2">
+                      {currentIntern.full_name}
+                      <span className="text-xs font-mono font-normal text-slate-500">({currentIntern.intern_id || currentIntern.email})</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">Domain: <strong>{currentIntern.department || "Technology"}</strong> · Accumulated Credits: <strong className="text-slate-900">{totalCredits} pts</strong></p>
+                  </div>
+
+                  <Button 
+                    onClick={() => handleDownloadMarksheet(currentIntern, internTasks, totalCredits, internCbtSubs)}
+                    className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs gap-1.5 shadow-sm h-10 px-5"
+                  >
+                    <Download className="h-4 w-4 text-slate-500" /> Download Experience Marksheet PDF
+                  </Button>
+                </div>
+
+                {/* 6 Tasks + Final Capstone Project Corporate Table */}
+                <div className="overflow-x-auto rounded-xl border border-slate-200">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-900 text-white font-bold uppercase text-xs">
+                      <tr>
+                        <th className="px-4 py-3">Milestone</th>
+                        <th className="px-4 py-3">Assigned Task Title</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3 text-center">Allocated Credits / Points</th>
+                        <th className="px-4 py-3 text-center">CBT Evaluation Score</th>
+                        <th className="px-4 py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {STANDARD_CURRICULUM.map((curr, index) => {
+                        const matchingTask = internTasks[index];
+                        const matchingCbt = internCbtSubs[index];
+
+                        return (
+                          <tr key={curr.name} className="hover:bg-slate-50">
+                            <td className="px-4 py-3 font-bold text-slate-900 whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold border">
+                                <BookmarkPlus className="h-3.5 w-3.5 text-slate-900" />
+                                {curr.name}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-semibold text-slate-800 text-xs">
+                                {matchingTask ? matchingTask.title : curr.label}
+                              </div>
+                              {matchingTask?.task_domain && (
+                                <div className="text-[10px] text-slate-400">Domain: {matchingTask.task_domain}</div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              {matchingTask ? (
+                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${matchingTask.status === 'completed' ? 'bg-slate-100 text-slate-800 border-slate-300 font-mono border border-slate-300' : 'bg-slate-100 text-slate-800 border-slate-300 font-mono border border-slate-300'}`}>
+                                  {matchingTask.status}
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-500 border border-slate-200">
+                                  Not Created
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-center font-black text-slate-900 text-base whitespace-nowrap">
+                              {matchingTask ? (matchingTask.credits || 10) : 0} <span className="text-xs font-normal text-slate-400">pts</span>
+                            </td>
+                            <td className="px-4 py-3 text-center whitespace-nowrap">
+                              {matchingCbt ? (
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${matchingCbt.passed ? 'bg-slate-100 text-slate-700 border-slate-300 font-mono border border-slate-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                                  <Sparkles className="h-3 w-3" /> {matchingCbt.score || 0}% ({matchingCbt.passed ? 'Passed' : 'Completed'})
+                                </span>
+                              ) : (
+                                <span className="text-xs text-slate-400 italic">No CBT Attempt</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right whitespace-nowrap">
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setCreditEditModal({
+                                    open: true,
+                                    intern: currentIntern,
+                                    taskId: matchingTask?.id,
+                                    taskTitle: matchingTask?.title || curr.label,
+                                    milestoneName: curr.name,
+                                    credits: matchingTask ? (matchingTask.credits || 10) : 10,
+                                    status: matchingTask?.status || "completed"
+                                  });
+                                }}
+                                className="h-7 text-xs font-bold bg-slate-900 hover:bg-black text-white gap-1 shadow-xs"
+                              >
+                                <Award className="h-3.5 w-3.5" /> {matchingTask ? "Edit Credits" : "Assign Credits"}
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ─── Institutional Corporate Task Workspace & Inspection Modal ─── */}
+      <Dialog open={!!taskDetailModal} onOpenChange={(v) => !v && setTaskDetailModal(null)}>
+        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200">
+          <DialogHeader className="border-b border-slate-100 pb-5">
+            <div className="flex items-center gap-2 flex-wrap mb-2.5">
+              <span className="h-6 px-2.5 rounded-md bg-slate-900 text-white font-mono text-[10px] font-bold tracking-widest uppercase flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-white" /> ISO/IEC 27001 AUDIT READY
+              </span>
+              {taskDetailModal?.status === "completed" || taskDetailModal?.is_verified ? (
+                <span className="h-6 px-2.5 rounded-md bg-slate-900 text-white font-mono text-[10px] font-bold uppercase inline-flex items-center gap-1">
+                  <Check className="h-3 w-3 text-white" /> Verified &amp; Completed
+                </span>
+              ) : taskDetailModal?.status === "submitted" || taskDetailModal?.deliverable_url ? (
+                <span className="h-6 px-2.5 rounded-md border border-slate-300 bg-slate-100 text-slate-800 font-mono text-[10px] font-bold uppercase inline-flex items-center gap-1">
+                  <Sparkles className="h-3 w-3 text-slate-900" /> Deliverable Submitted
+                </span>
+              ) : taskDetailModal?.status === "in_progress" ? (
+                <span className="h-6 px-2.5 rounded-md border border-slate-200 bg-slate-100 text-slate-700 font-mono text-[10px] font-semibold uppercase">
+                  In Progress
+                </span>
+              ) : (
+                <span className="h-6 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-600 font-mono text-[10px] uppercase">
+                  Pending Start
+                </span>
+              )}
+
+              <span className="h-6 px-2 rounded-md border border-slate-200 bg-slate-50 text-slate-800 font-mono text-[10px] font-bold uppercase">
+                {taskDetailModal?.level || "Core Track"}
+              </span>
+
+              <span className="h-6 px-2 rounded-md border border-slate-200 bg-slate-50 text-slate-900 font-mono text-[10px] font-bold">
+                {taskDetailModal?.credits || 10} Credits
+              </span>
+
+              <span className={`h-6 px-2 rounded-md font-mono text-[10px] font-bold uppercase ${
+                taskDetailModal?.priority === "high" || taskDetailModal?.priority === "urgent"
+                  ? "bg-slate-900 text-white"
+                  : "border border-slate-200 bg-slate-50 text-slate-700"
+              }`}>
+                {taskDetailModal?.priority || "medium"} Priority
+              </span>
+            </div>
+
+            <DialogTitle className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
+              {taskDetailModal?.title}
+            </DialogTitle>
+
+            <DialogDescription className="text-xs text-slate-500 pt-2 flex flex-wrap items-center gap-4">
+              <span className="flex items-center gap-1.5 font-medium text-slate-700">
+                <User className="h-3.5 w-3.5 text-slate-400" />
+                Assigned Associate: <strong className="text-slate-900 font-bold">{taskDetailModal?.assigned_profile?.full_name || taskDetailModal?.assigned_profile?.email || "Intern Associate"}</strong>
+                {taskDetailModal?.assigned_profile?.intern_id && (
+                  <span className="font-mono text-slate-500">({taskDetailModal.assigned_profile.intern_id})</span>
+                )}
+              </span>
+              {taskDetailModal?.due_date && (
+                <span className="flex items-center gap-1 font-mono text-slate-600">
+                  <Clock className="h-3.5 w-3.5 text-slate-400" />
+                  Target Deadline: <strong className="text-slate-900">{taskDetailModal.due_date.split('T')[0]}</strong>
+                </span>
+              )}
+              {taskDetailModal?.team_name && (
+                <span className="flex items-center gap-1 text-slate-700 font-semibold font-mono">
+                  <Users className="h-3.5 w-3.5 text-slate-500" /> {taskDetailModal.team_name}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-5 space-y-6">
+            {/* 1. Milestone Scope & Requirements */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-slate-900" /> Milestone Scope &amp; Specifications
+              </h3>
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 leading-relaxed max-h-80 overflow-y-auto">
+                <TaskRichDescription
+                  description={taskDetailModal?.description}
+                  teamMembers={taskDetailModal?.team_members}
+                  teamId={taskDetailModal?.team_id}
+                />
+              </div>
+            </div>
+
+            {/* 2. Attachments & Institutional Resources */}
+            {(taskDetailModal?.task_meet_link || taskDetailModal?.task_file_url || taskDetailModal?.project_requirements || taskDetailModal?.task_doc_url || taskDetailModal?.report_template_url || taskDetailModal?.ppt_template_url) && (
+              <div className="space-y-2">
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <Layers className="h-3.5 w-3.5 text-slate-900" /> Attachments &amp; Resources
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {taskDetailModal?.task_meet_link && (
+                    <a
+                      href={taskDetailModal.task_meet_link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-black transition-all shadow-xs"
+                    >
+                      <Video className="h-3.5 w-3.5 text-white" /> Join Meeting Link
+                    </a>
+                  )}
+                  {(taskDetailModal?.task_file_url || taskDetailModal?.project_requirements) && (
+                    <a
+                      href={taskDetailModal.task_file_url || taskDetailModal.project_requirements}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-800 text-xs font-semibold hover:bg-slate-50 transition-all shadow-2xs"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-slate-700" /> Project Requirements File
+                    </a>
+                  )}
+                  {taskDetailModal?.task_doc_url && (
+                    <a
+                      href={taskDetailModal.task_doc_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-800 text-xs font-semibold hover:bg-slate-50 transition-all shadow-2xs"
+                    >
+                      <BookOpen className="h-3.5 w-3.5 text-slate-700" /> Handbook Guide
+                    </a>
+                  )}
+                  {taskDetailModal?.report_template_url && (
+                    <a
+                      href={taskDetailModal.report_template_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-800 text-xs font-semibold hover:bg-slate-50 transition-all shadow-2xs"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-slate-700" /> Report Template
+                    </a>
+                  )}
+                  {taskDetailModal?.ppt_template_url && (
+                    <a
+                      href={taskDetailModal.ppt_template_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-800 text-xs font-semibold hover:bg-slate-50 transition-all shadow-2xs"
+                    >
+                      <Play className="h-3.5 w-3.5 text-slate-700" /> PPT Template
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 3. Deliverable Submissions & Live Inspector */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-slate-900" /> Deliverable Verification &amp; Preview
+              </h3>
+              {taskDetailModal?.deliverable_url ? (
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-700 block">Submitted Deliverable URL:</span>
+                      <a
+                        href={taskDetailModal.deliverable_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-mono font-bold text-slate-900 hover:underline break-all flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                        {taskDetailModal.deliverable_url}
+                      </a>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.open(taskDetailModal.deliverable_url, "_blank")}
+                      className="h-8 text-xs font-semibold border-slate-300 text-slate-800 hover:bg-slate-100 rounded-lg shrink-0 cursor-pointer"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open Externally
+                    </Button>
+                  </div>
+
+                  {taskDetailModal.submission_notes && (
+                    <div className="p-3 rounded-lg bg-white border border-slate-200 text-xs space-y-1">
+                      <span className="font-bold text-slate-700">Associate Submission Notes:</span>
+                      <p className="text-slate-600 italic leading-relaxed">
+                        "{taskDetailModal.submission_notes}"
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Iframe Preview */}
+                  <div className="w-full h-72 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-inner">
+                    <iframe
+                      src={getPreviewUrl(taskDetailModal.deliverable_url)}
+                      className="w-full h-full border-0"
+                      title="Deliverable Preview"
+                      allow="autoplay"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 text-center text-xs text-slate-500">
+                  No deliverable submitted yet. The associate is actively working on this milestone.
+                </div>
+              )}
+            </div>
+
+            {/* 4. Mentor Notes & Review Feedback */}
+            {(taskDetailModal?.mentor_report || taskDetailModal?.progress_notes) && (
+              <div className="p-3.5 rounded-xl bg-slate-100 border border-slate-200 text-xs space-y-1">
+                <span className="font-mono font-bold text-slate-900 uppercase text-[10px]">Current Mentor Remarks:</span>
+                <p className="text-slate-700 italic leading-relaxed">"{taskDetailModal.mentor_report || taskDetailModal.progress_notes}"</p>
+              </div>
+            )}
+
+            {/* 5. Extension Request */}
+            {taskDetailModal?.extension_status === "requested" && (
+              <div className="p-4 rounded-xl border border-slate-300 bg-slate-50 space-y-2">
+                <div className="font-bold text-xs text-slate-900 flex items-center gap-1.5 font-mono">
+                  <Clock className="h-4 w-4 text-slate-900" /> Deadline Extension Requested
+                </div>
+                <p className="text-xs text-slate-700"><strong>Reason:</strong> "{taskDetailModal.extension_reason || 'No explanation provided'}"</p>
+                {taskDetailModal.extension_requested_date && (
+                  <p className="text-xs text-slate-500 font-mono">
+                    Requested Date: {new Date(taskDetailModal.extension_requested_date).toLocaleDateString()}
+                  </p>
+                )}
+                <div className="flex items-center gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    className="bg-slate-900 hover:bg-black text-white text-xs font-bold h-7 px-3 rounded-lg cursor-pointer"
+                    onClick={async () => {
+                      try {
+                        await doReviewDeadlineExtension({ data: { taskId: taskDetailModal.id, status: 'approved' } });
+                        toast.success("Deadline extension approved!");
+                        setTaskDetailModal(null);
+                        qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+                      } catch (e) {
+                        toast.error("Failed to approve extension");
+                      }
+                    }}
+                  >
+                    Approve Extension
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-slate-300 text-rose-600 hover:bg-rose-50 text-xs font-bold h-7 px-3 rounded-lg cursor-pointer"
+                    onClick={async () => {
+                      try {
+                        await doReviewDeadlineExtension({ data: { taskId: taskDetailModal.id, status: 'rejected' } });
+                        toast.success("Deadline extension rejected!");
+                        setTaskDetailModal(null);
+                        qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+                      } catch (e) {
+                        toast.error("Failed to reject extension");
+                      }
+                    }}
+                  >
+                    Reject Extension
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="border-t border-slate-200 pt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  handleUpdateStatus(taskDetailModal.id, "completed");
+                  setTaskDetailModal(null);
+                }}
+                className="bg-slate-900 text-white hover:bg-black font-semibold text-xs h-9 px-4 rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Check className="h-4 w-4 text-white" />
+                <span>Approve &amp; Complete (+{taskDetailModal?.credits || 10} Cr)</span>
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const cur = taskDetailModal;
+                  setTaskDetailModal(null);
+                  setSelectedTaskForReview(cur);
+                  setAdminRemarks(cur.progress_notes || "");
+                }}
+                className="border-slate-300 text-slate-800 hover:bg-slate-100 font-semibold text-xs h-9 px-3 rounded-lg flex items-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw className="h-3.5 w-3.5 text-slate-700" />
+                <span>Grade / Review</span>
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const cur = taskDetailModal;
+                  setTaskDetailModal(null);
+                  openTaskEmailModal(cur);
+                }}
+                className="border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold text-xs h-9 px-3 rounded-lg flex items-center gap-1.5 cursor-pointer"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                <span>Email Associate</span>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setTaskDetailModal(null)}
+                className="text-slate-500 hover:text-slate-900 text-xs h-9 px-3 rounded-lg cursor-pointer"
+              >
+                Close
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Review Modal */}
+      {selectedTaskForReview && (
+        <Dialog open={!!selectedTaskForReview} onOpenChange={(v) => !v && setSelectedTaskForReview(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-slate-900" />
+                Verify & Review Task: {selectedTaskForReview.title}
+              </DialogTitle>
+              <DialogDescription>
+                Assigned to <strong>{selectedTaskForReview.assigned_profile?.full_name || selectedTaskForReview.assigned_profile?.email || "Intern"}</strong> ({selectedTaskForReview.assigned_profile?.intern_id || "Intern"}). Review work and leave official feedback.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              
+              {selectedTaskForReview.deliverable_url && (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
+                  <span className="text-[11px] font-bold text-slate-700 block">Submitted Deliverable:</span>
+                  <a
+                    href={selectedTaskForReview.deliverable_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-slate-900 hover:underline flex items-center gap-1 font-mono break-all mb-2"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                    {selectedTaskForReview.deliverable_url}
+                  </a>
+                  <div className="w-full h-[40vh] sm:h-[50vh] border border-slate-300 rounded-lg overflow-hidden bg-white relative">
+                    <iframe 
+                      src={getPreviewUrl(selectedTaskForReview.deliverable_url)} 
+                      className="w-full h-full border-0" 
+                      title="Deliverable Preview"
+                      allow="autoplay"
+                    />
+                  </div>
+                </div>
+              )}
+
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700">Verification Status</label>
+                  <Select
+                    defaultValue={selectedTaskForReview.status}
+                    onValueChange={(val) => {
+                      setSelectedTaskForReview((prev: any) => ({ ...prev, status: val }));
+                    }}
+                  >
+                    <SelectTrigger className="mt-1 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="completed">✓ Approved & Completed</SelectItem>
+                      <SelectItem value="submitted">⏳ Submitted (Under Review)</SelectItem>
+                      <SelectItem value="blocked">⚠️ Needs Revision / Changes</SelectItem>
+                      <SelectItem value="in_progress">⚡ In Progress</SelectItem>
+                      <SelectItem value="pending">⏸️ Pending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700">Credits / Score</label>
+                  <Input
+                    type="number"
+                    defaultValue={selectedTaskForReview.credits || 10}
+                    onChange={(e) => {
+                      setSelectedTaskForReview((prev: any) => ({ ...prev, credits: parseInt(e.target.value) || 10 }));
+                    }}
+                    className="mt-1 text-xs h-9"
+                    placeholder="Credits e.g. 10"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700">Mentor Review & Feedback (Displayed in Intern Portal)</label>
+                <Textarea
+                  placeholder="e.g. Excellent implementation of the authentication endpoints. Clean architecture and unit tests verified. Approved!"
+                  rows={4}
+                  value={adminRemarks}
+                  onChange={(e) => setAdminRemarks(e.target.value)}
+                  className="text-xs mt-1"
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="sm:w-1/4 text-xs"
+                  onClick={() => setSelectedTaskForReview(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="sm:w-3/8 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs gap-1.5 shadow-sm"
+                  disabled={isUpdating}
+                  onClick={async () => {
+                    setIsUpdating(true);
+                    try {
+                      await doReview({
+                        data: {
+                          taskId: selectedTaskForReview.id,
+                          status: selectedTaskForReview.status || "completed",
+                          admin_remarks: adminRemarks,
+                          credits: selectedTaskForReview.credits,
+                        },
+                      });
+                      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+                      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+                      toast.success(`Task verified and review feedback saved!`);
+                      setSelectedTaskForReview(null);
+                    } catch (err: any) {
+                      toast.error("Failed to update task: " + err.message);
+                    } finally {
+                      setIsUpdating(false);
+                    }
+                  }}
+                >
+                  <Check className="h-4 w-4" /> Save Review
+                </Button>
+                <Button
+                  className="sm:w-3/8 bg-slate-900 hover:bg-black text-white font-bold text-xs gap-1.5 shadow-sm"
+                  disabled={isUpdating}
+                  onClick={async () => {
+                    setIsUpdating(true);
+                    try {
+                      await doReview({
+                        data: {
+                          taskId: selectedTaskForReview.id,
+                          status: selectedTaskForReview.status || "completed",
+                          admin_remarks: adminRemarks,
+                          credits: selectedTaskForReview.credits,
+                        },
+                      });
+                      qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+                      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+                      
+                      const email = selectedTaskForReview.assigned_profile?.email;
+                      if (email) {
+                        await doSendTaskEmail({
+                          data: {
+                            recipient_email: email,
+                            recipient_name: selectedTaskForReview.assigned_profile?.full_name,
+                            task_title: selectedTaskForReview.title,
+                            task_status: selectedTaskForReview.status || "completed",
+                            mentor_remarks: adminRemarks,
+                            credits: selectedTaskForReview.credits,
+                          },
+                        });
+                        toast.success(`Review saved & status email dispatched to ${email}!`);
+                      } else {
+                        toast.success(`Review saved!`);
+                      }
+                      setSelectedTaskForReview(null);
+                    } catch (err: any) {
+                      toast.error("Failed to update task / send email: " + err.message);
+                    } finally {
+                      setIsUpdating(false);
+                    }
+                  }}
+                >
+                  <Mail className="h-4 w-4" /> Save &amp; Email Intern
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ─── DEDICATED TASK STATUS EMAIL & NOTIFICATION MODAL ─── */}
+      {taskEmailModalOpen && (
+        <Dialog open={taskEmailModalOpen} onOpenChange={setTaskEmailModalOpen}>
+          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Mail className="h-5 w-5 text-slate-900" />
+                {taskEmailRecipients.length > 1 
+                  ? `Send Task Notification to Team (${taskEmailRecipients.length} Members)`
+                  : "Send Task Status Email to Intern"}
+              </DialogTitle>
+              <DialogDescription>
+                Dispatch a tailored corporate email notification regarding milestone status, mentor remarks, or deadline reminders.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2 text-xs">
+              {/* If multiple team members, show team member selection box */}
+              {taskEmailRecipients.length > 1 ? (
+                <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2.5 text-white">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 text-xs">
+                      <Users className="h-4 w-4 text-slate-900" />
+                      Select Team Recipients ({taskEmailRecipients.filter(r => r.selected).length}/{taskEmailRecipients.length})
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setTaskEmailRecipients(prev => prev.map(r => ({ ...r, selected: true })))}
+                        className="text-[11px] text-slate-900 hover:underline font-semibold cursor-pointer"
+                      >
+                        Select All
+                      </button>
+                      <span className="text-slate-300 dark:text-slate-700">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setTaskEmailRecipients(prev => prev.map(r => ({ ...r, selected: false })))}
+                        className="text-[11px] text-slate-500 hover:underline font-semibold cursor-pointer"
+                      >
+                        Deselect All
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="divide-y divide-slate-200/70 dark:divide-slate-800/70 max-h-48 overflow-y-auto pr-1">
+                    {taskEmailRecipients.map((r, idx) => (
+                      <div key={r.id || idx} className="py-2 flex items-center justify-between gap-2">
+                        <label className="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                          <Checkbox
+                            checked={r.selected}
+                            onCheckedChange={(c) => {
+                              setTaskEmailRecipients(prev => prev.map((x, i) => i === idx ? { ...x, selected: Boolean(c) } : x));
+                            }}
+                          />
+                          <div className="min-w-0">
+                            <span className="font-bold text-slate-900 dark:text-slate-100 block truncate">{r.name || "Intern"}</span>
+                            <span className="text-slate-500 text-[11px] block truncate">{r.email || "No email"}</span>
+                          </div>
+                        </label>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Input
+                            placeholder="WhatsApp Phone"
+                            value={r.phone}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setTaskEmailRecipients(prev => prev.map((x, i) => i === idx ? { ...x, phone: val } : x));
+                            }}
+                            className="h-7 w-32 text-[11px] px-2 bg-white dark:bg-slate-950 text-white"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-slate-900 bg-slate-50 hover:bg-slate-100 border-slate-200 text-[11px] font-bold gap-1 cursor-pointer"
+                            onClick={() => handleSendTaskWhatsAppSubmit(r)}
+                            title={`Open WhatsApp chat with ${r.name}`}
+                          >
+                            <MessageSquare className="h-3 w-3" /> WhatsApp
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                /* Single Intern Fields */
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Intern Name</label>
+                    <Input 
+                      value={taskEmailRecipients[0]?.name || ""} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTaskEmailRecipients(prev => prev.map((x, i) => i === 0 ? { ...x, name: val } : x));
+                      }} 
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Recipient Email *</label>
+                    <Input 
+                      value={taskEmailRecipients[0]?.email || ""} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTaskEmailRecipients(prev => prev.map((x, i) => i === 0 ? { ...x, email: val } : x));
+                      }} 
+                      required 
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1 flex items-center justify-between">
+                      <span>WhatsApp Phone</span>
+                      {!taskEmailRecipients[0]?.phone && <span className="text-[10px] text-slate-900 font-normal">(For WhatsApp)</span>}
+                    </label>
+                    <Input 
+                      placeholder="e.g. +91 9876543210" 
+                      value={taskEmailRecipients[0]?.phone || ""} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTaskEmailRecipients(prev => prev.map((x, i) => i === 0 ? { ...x, phone: val } : x));
+                      }} 
+                      className={!taskEmailRecipients[0]?.phone ? "border-slate-300 focus:ring-amber-400" : ""}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Task Title *</label>
+                  <Input value={taskEmailForm.task_title} onChange={(e) => setTaskEmailForm({ ...taskEmailForm, task_title: e.target.value })} required />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Task Status Notification Type *</label>
+                  <Select
+                    value={taskEmailForm.task_status}
+                    onValueChange={(val) => setTaskEmailForm({ ...taskEmailForm, task_status: val })}
+                  >
+                    <SelectTrigger className="text-xs h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="completed">✓ Task Approved &amp; Completed</SelectItem>
+                      <SelectItem value="changes_requested">⚠️ Revisions Requested / Feedback</SelectItem>
+                      <SelectItem value="deadline_reminder">⏰ Urgent Deadline Reminder</SelectItem>
+                      <SelectItem value="submitted">⏳ Submission Acknowledged</SelectItem>
+                      <SelectItem value="assigned">📋 New Task Assigned</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Mentor Remarks &amp; Official Feedback</label>
+                <Textarea
+                  rows={3}
+                  placeholder="e.g. Excellent work! Code submitted fulfills all acceptance criteria. Approved."
+                  value={taskEmailForm.mentor_remarks}
+                  onChange={(e) => setTaskEmailForm({ ...taskEmailForm, mentor_remarks: e.target.value })}
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Due Deadline (Optional)</label>
+                  <Input value={taskEmailForm.due_date} onChange={(e) => setTaskEmailForm({ ...taskEmailForm, due_date: e.target.value })} placeholder="e.g. 26 August 2026" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Custom Subject (Optional)</label>
+                  <Input value={taskEmailForm.custom_subject} onChange={(e) => setTaskEmailForm({ ...taskEmailForm, custom_subject: e.target.value })} placeholder="Leave blank for auto-generated subject" />
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 dark:bg-blue-950/20 border border-slate-200 dark:border-blue-900 rounded-xl text-slate-900 dark:text-blue-200 text-xs">
+                <strong>Corporate Template:</strong> Includes Vyntyra header, task milestone badge, mentor remarks box, and direct button linking to the Intern Dashboard.
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-3 border-t">
+                <Button variant="outline" size="sm" onClick={() => setTaskEmailModalOpen(false)}>
+                  Cancel
+                </Button>
+                {taskEmailRecipients.length <= 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSendTaskWhatsAppSubmit()}
+                    className="text-slate-900 border-slate-300 hover:bg-slate-50 font-bold gap-1 text-xs"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" /> Send via WhatsApp
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  disabled={isSendingTaskEmail || taskEmailRecipients.filter(r => r.selected).length === 0}
+                  onClick={handleSendTaskEmailSubmit}
+                  className="bg-slate-900 hover:bg-black text-white font-bold gap-1 text-xs"
+                >
+                  {isSendingTaskEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  {taskEmailRecipients.length > 1
+                    ? `Dispatch to ${taskEmailRecipients.filter(r => r.selected).length} Selected Interns`
+                    : "Dispatch Status Email"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Bulk / Manual Task Assignment Modal */}
+      <InternTaskAssignmentModal open={assignModalOpen} onClose={() => setAssignModalOpen(false)} />
+
+      {/* Manage Team Modal */}
+      <ManageTeamModal 
+        open={isManageTeamOpen} 
+        onOpenChange={setIsManageTeamOpen} 
+        task={manageTeamTask} 
+        interns={allActiveInterns} 
+      />
+
+      {/* Clear All Confirmation Modal */}
+      <Dialog open={clearAllModalOpen} onOpenChange={setClearAllModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-600">
+              <AlertTriangle className="h-5 w-5" /> Confirm Clear All
+            </DialogTitle>
+            <DialogDescription className="text-slate-600 pt-2">
+              Are you sure you want to delete <strong>ALL</strong> intern tasks? 
+              This action will irreversibly wipe the entire task board for every active intern.
+              <br /><br />
+              This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setClearAllModalOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleClearAllTasks}>
+              Yes, Clear All Tasks
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cohort Task Rollover & Reassignment Modal */}
+      <Dialog open={rolloverModalOpen} onOpenChange={setRolloverModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-slate-50 dark:bg-slate-900 text-white">
+          <DialogHeader className="p-6 bg-white dark:bg-slate-950 border-b shrink-0 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <RotateCcw className="h-5 w-5 text-slate-900" />
+                  Cohort Task Rollover &amp; Reassignment Hub
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-500 mt-1">
+                  Select verified &amp; completed tasks from current cohorts, clone them for the next cohort, and directly assign to newly enrolled interns.
+                </DialogDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`px-3 py-1 text-xs font-bold rounded-full ${rolloverStep === 1 ? 'bg-slate-100 text-slate-800 border-slate-300 font-mono' : 'bg-slate-100 text-slate-600'}`}>
+                  Step 1: Select Tasks ({selectedVerifiedTaskIds.length})
+                </span>
+                <span className={`px-3 py-1 text-xs font-bold rounded-full ${rolloverStep === 2 ? 'bg-slate-100 text-slate-800 border-slate-300 font-mono' : 'bg-slate-100 text-slate-600'}`}>
+                  Step 2: Destination &amp; Interns ({selectedTargetInternIds.length})
+                </span>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="p-6 flex-1 overflow-y-auto space-y-6">
+            {rolloverStep === 1 ? (
+              <div className="space-y-4">
+                {/* Search & Filter Bar */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-950 p-4 rounded-xl border shadow-xs text-white">
+                  <div className="relative flex-1 w-full">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Search verified task titles or descriptions..."
+                      value={verifiedTaskSearchQuery}
+                      onChange={(e) => setVerifiedTaskSearchQuery(e.target.value)}
+                      className="pl-9 text-xs"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Button
+                      variant={onlyVerifiedFilter ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setOnlyVerifiedFilter(!onlyVerifiedFilter)}
+                      className={`text-xs font-bold ${onlyVerifiedFilter ? 'bg-slate-900 hover:bg-black text-white' : ''}`}
+                    >
+                      <CheckCheck className="h-3.5 w-3.5 mr-1" /> Only Verified / Done
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (selectedVerifiedTaskIds.length === filteredVerifiedTasks.length) {
+                          setSelectedVerifiedTaskIds([]);
+                        } else {
+                          setSelectedVerifiedTaskIds(filteredVerifiedTasks.map(t => t.id));
+                        }
+                      }}
+                      className="text-xs font-bold shrink-0"
+                    >
+                      {selectedVerifiedTaskIds.length === filteredVerifiedTasks.length ? "Deselect All" : "Select All"}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Verified Task Cards List */}
+                <div className="space-y-2.5 max-h-[400px] overflow-y-auto pr-1">
+                  {filteredVerifiedTasks.length === 0 ? (
+                    <div className="text-center py-12 bg-white dark:bg-slate-950 rounded-xl border border-dashed text-slate-400 text-xs text-white">
+                      No matching verified tasks found. Uncheck "Only Verified" or adjust search.
+                    </div>
+                  ) : (
+                    filteredVerifiedTasks.map((t) => {
+                      const isSelected = selectedVerifiedTaskIds.includes(t.id);
+                      return (
+                        <div
+                          key={t.id}
+                          onClick={() => {
+                            setSelectedVerifiedTaskIds(prev => 
+                              prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id]
+                            );
+                          }}
+                          className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 flex items-start gap-3.5 ${
+                            isSelected 
+                              ? "bg-slate-50 border-slate-300 dark:bg-emerald-950/30 dark:border-emerald-700 shadow-xs" 
+                              : "bg-white dark:bg-slate-950 border-slate-200/80 hover:border-slate-300"
+                          }`}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => {
+                              setSelectedVerifiedTaskIds(prev => 
+                                prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id]
+                              );
+                            }}
+                            className="mt-1 data-[state=checked]:bg-slate-900 data-[state=checked]:border-emerald-600 text-white"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                                {t.title}
+                                {t.is_verified && (
+                                  <Badge className="bg-slate-100 text-slate-800 border-slate-300 font-mono text-[10px] font-bold border-0">
+                                    Verified
+                                  </Badge>
+                                )}
+                              </h4>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase">
+                                  {t.priority || "Medium"}
+                                </span>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 border-slate-300 font-mono">
+                                  {t.credits || 10} Credits
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                              {t.description || "No description provided."}
+                            </p>
+                            <div className="flex items-center gap-4 mt-2 text-[11px] text-slate-400">
+                              {t.assigned_profile && (
+                                <span>Previous Assignee: <strong>{t.assigned_profile.full_name || t.assigned_profile.email}</strong></span>
+                              )}
+                              {t.task_domain && <span>Domain: <strong>{t.task_domain}</strong></span>}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Cohort Configuration */}
+                <div className="bg-white dark:bg-slate-950 p-5 rounded-xl border shadow-xs space-y-4 text-white">
+                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-slate-900" /> Destination Cohort &amp; Timeline
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Target Cohort Name</label>
+                      <Input
+                        value={targetCohort}
+                        onChange={(e) => setTargetCohort(e.target.value)}
+                        placeholder="e.g. Cohort September 2026"
+                        className="text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">New Submission Deadline</label>
+                      <Input
+                        type="date"
+                        value={targetDueDate}
+                        onChange={(e) => setTargetDueDate(e.target.value)}
+                        className="text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Task Priority</label>
+                      <Select value={targetPriority} onValueChange={(val: any) => setTargetPriority(val)}>
+                        <SelectTrigger className="text-xs">
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low Priority</SelectItem>
+                          <SelectItem value="medium">Medium Priority</SelectItem>
+                          <SelectItem value="high">High Priority</SelectItem>
+                          <SelectItem value="urgent">Urgent / Critical</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Custom Cohort Instructions / Addendum (Optional)</label>
+                    <Textarea
+                      rows={2}
+                      placeholder="e.g. Please submit your GitHub repository link and deployed live demo before week 3 review."
+                      value={customCohortInstructions}
+                      onChange={(e) => setCustomCohortInstructions(e.target.value)}
+                      className="text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Target Intern Selection */}
+                <div className="bg-white dark:bg-slate-950 p-5 rounded-xl border shadow-xs space-y-4 text-white">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div>
+                      <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                        <Users className="h-4 w-4 text-slate-900" /> Assign Directly to Enrolled Interns
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">Select specific interns or assign to the whole cohort.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (selectedTargetInternIds.length === filteredTargetInterns.length) {
+                            setSelectedTargetInternIds([]);
+                          } else {
+                            setSelectedTargetInternIds(filteredTargetInterns.map(i => i.id));
+                          }
+                        }}
+                        className="text-xs font-bold"
+                      >
+                        {selectedTargetInternIds.length === filteredTargetInterns.length ? "Deselect All" : "Select All Interns"}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Search interns by name, email, roll number, or domain..."
+                      value={internSearchQuery}
+                      onChange={(e) => setInternSearchQuery(e.target.value)}
+                      className="pl-9 text-xs"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[220px] overflow-y-auto pr-1">
+                    {internsQ.isLoading ? (
+                      <div className="col-span-2 text-center py-8 text-slate-400 text-xs flex items-center justify-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-slate-900" /> Loading active interns...
+                      </div>
+                    ) : filteredTargetInterns.length === 0 ? (
+                      <div className="col-span-2 text-center py-8 text-slate-400 text-xs">
+                        No interns found matching the criteria.
+                      </div>
+                    ) : (
+                      filteredTargetInterns.map((intern) => {
+                        const isSelected = selectedTargetInternIds.includes(intern.id);
+                        return (
+                          <div
+                            key={intern.id}
+                            onClick={() => {
+                              setSelectedTargetInternIds(prev => 
+                                prev.includes(intern.id) ? prev.filter(id => id !== intern.id) : [...prev, intern.id]
+                              );
+                            }}
+                            className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 ${
+                              isSelected
+                                ? "bg-slate-50 border-slate-300 dark:bg-emerald-950/30 dark:border-emerald-700"
+                                : "bg-slate-50 dark:bg-slate-900 border-slate-200/80 hover:bg-white"
+                            }`}
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => {
+                                setSelectedTargetInternIds(prev => 
+                                  prev.includes(intern.id) ? prev.filter(id => id !== intern.id) : [...prev, intern.id]
+                                );
+                              }}
+                              className="data-[state=checked]:bg-slate-900 data-[state=checked]:border-emerald-600 text-white"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">
+                                {intern.full_name || "Intern"}
+                              </div>
+                              <div className="text-[10px] text-slate-500 truncate">
+                                {intern.email} {intern.intern_id && `• ${intern.intern_id}`}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Summary Box */}
+                <div className="p-4 bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950/40 dark:via-teal-950/40 dark:to-cyan-950/40 border border-slate-200 dark:border-emerald-800 rounded-xl text-xs text-slate-900 dark:text-emerald-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-slate-900 shrink-0" />
+                    <span>
+                      Will clone <strong>{selectedVerifiedTaskIds.length} verified task(s)</strong> and assign them to <strong>{selectedTargetInternIds.length} intern(s)</strong> in <strong>{targetCohort}</strong> (Total <strong>{selectedVerifiedTaskIds.length * (selectedTargetInternIds.length || 1)}</strong> fresh assignments).
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="p-4 bg-white dark:bg-slate-950 border-t shrink-0 flex items-center justify-between sm:justify-between w-full text-white">
+            <div>
+              {rolloverStep === 2 && (
+                <Button variant="outline" size="sm" onClick={() => setRolloverStep(1)} className="text-xs font-bold">
+                  ← Back to Task Selection
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setRolloverModalOpen(false)} className="text-xs">
+                Cancel
+              </Button>
+              {rolloverStep === 1 ? (
+                <Button
+                  size="sm"
+                  disabled={selectedVerifiedTaskIds.length === 0}
+                  onClick={() => setRolloverStep(2)}
+                  className="bg-slate-900 hover:bg-black text-white font-bold text-xs gap-1.5 shadow-md"
+                >
+                  Configure Cohort &amp; Assign Interns ({selectedVerifiedTaskIds.length}) →
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  disabled={isRolloverLoading || selectedVerifiedTaskIds.length === 0}
+                  onClick={handleExecuteRollover}
+                  className="bg-slate-900 text-white hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs gap-1.5 shadow-md"
+                >
+                  {isRolloverLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCheck className="h-3.5 w-3.5" />}
+                  Execute Cohort Rollover &amp; Direct Assignment
+                </Button>
+              )}
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Assign Stored Tasks to Interns Dialog ── */}
+      <Dialog open={assignStoredModalOpen} onOpenChange={setAssignStoredModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-slate-50 dark:bg-slate-900 text-white">
+          <DialogHeader className="p-6 bg-white dark:bg-slate-950 border-b shrink-0 text-white">
+            <DialogTitle className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Send className="h-5 w-5 text-slate-900" />
+              Assign Stored Tasks to Enrolled Interns
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 mt-1">
+              Select one or multiple interns to assign the {selectedStoredTaskIds.length} stored task(s) from the repository.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-6 flex-1 overflow-y-auto space-y-6">
+            {/* Timeline & Instructions */}
+            <div className="bg-white dark:bg-slate-950 p-5 rounded-xl border shadow-xs space-y-4 text-white">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-slate-900" /> Assignment Timeline &amp; Priority
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Submission Deadline</label>
+                  <Input
+                    type="date"
+                    value={storedDueDate}
+                    onChange={(e) => setStoredDueDate(e.target.value)}
+                    className="text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Task Priority</label>
+                  <Select value={storedPriority} onValueChange={(val: any) => setStoredPriority(val)}>
+                    <SelectTrigger className="text-xs">
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low Priority</SelectItem>
+                      <SelectItem value="medium">Medium Priority</SelectItem>
+                      <SelectItem value="high">High Priority</SelectItem>
+                      <SelectItem value="urgent">Urgent / Critical</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Custom Assignment Instructions / Addendum (Optional)</label>
+                <Textarea
+                  rows={2}
+                  placeholder="e.g. Please submit your GitHub repository link and report before final review."
+                  value={storedCustomInstructions}
+                  onChange={(e) => setStoredCustomInstructions(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Target Intern Selection */}
+            <div className="bg-white dark:bg-slate-950 p-5 rounded-xl border shadow-xs space-y-4 text-white">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                    <Users className="h-4 w-4 text-slate-900" /> Select Target Interns ({storedTargetInternIds.length} Selected)
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Select specific interns or assign to all.</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const filtered = allActiveInterns.filter((intern) => {
+                      const s = storedInternSearch.toLowerCase();
+                      return !s || (intern.full_name || '').toLowerCase().includes(s) || (intern.email || '').toLowerCase().includes(s) || (intern.intern_id || '').toLowerCase().includes(s);
+                    });
+                    if (storedTargetInternIds.length === filtered.length) {
+                      setStoredTargetInternIds([]);
+                    } else {
+                      setStoredTargetInternIds(filtered.map(i => i.id));
+                    }
+                  }}
+                  className="text-xs font-bold cursor-pointer"
+                >
+                  {storedTargetInternIds.length > 0 ? "Deselect All" : "Select All Interns"}
+                </Button>
+              </div>
+
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Search interns by name, email, roll number, or domain..."
+                  value={storedInternSearch}
+                  onChange={(e) => setStoredInternSearch(e.target.value)}
+                  className="pl-9 text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[220px] overflow-y-auto pr-1">
+                {internsQ.isLoading ? (
+                  <div className="col-span-2 text-center py-8 text-slate-400 text-xs flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-slate-900" /> Loading active interns...
+                  </div>
+                ) : allActiveInterns.length === 0 ? (
+                  <div className="col-span-2 text-center py-8 text-slate-400 text-xs">
+                    No active interns enrolled.
+                  </div>
+                ) : (
+                  allActiveInterns
+                    .filter((intern) => {
+                      const s = storedInternSearch.toLowerCase();
+                      return !s || (intern.full_name || '').toLowerCase().includes(s) || (intern.email || '').toLowerCase().includes(s) || (intern.intern_id || '').toLowerCase().includes(s);
+                    })
+                    .map((intern) => {
+                      const isSelected = storedTargetInternIds.includes(intern.id);
+                      return (
+                        <div
+                          key={intern.id}
+                          onClick={() => {
+                            setStoredTargetInternIds(prev =>
+                              prev.includes(intern.id) ? prev.filter(id => id !== intern.id) : [...prev, intern.id]
+                            );
+                          }}
+                          className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 ${
+                            isSelected
+                              ? "bg-slate-50 border-slate-300 dark:bg-emerald-950/40 dark:border-emerald-700 shadow-2xs font-semibold"
+                              : "bg-slate-50 dark:bg-slate-900 border-slate-200/80 hover:bg-white"
+                          }`}
+                        >
+                          <div className={`h-4 w-4 rounded flex items-center justify-center shrink-0 border transition-all ${
+                            isSelected ? "bg-slate-900 border-emerald-600 text-white" : "border-slate-300 bg-white"
+                          }`}>
+                            {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">
+                              {intern.full_name || "Intern"}
+                            </div>
+                            <div className="text-[10px] text-slate-500 truncate">
+                              {intern.email} {intern.intern_id && `• ${intern.intern_id}`}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="p-4 bg-white dark:bg-slate-950 border-t shrink-0 flex items-center justify-between w-full text-white">
+            <Button variant="outline" size="sm" onClick={() => setAssignStoredModalOpen(false)} className="text-xs cursor-pointer">
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={isAssigningStored || selectedStoredTaskIds.length === 0 || storedTargetInternIds.length === 0}
+              onClick={handleAssignStoredTasksSubmit}
+              className="bg-slate-900 hover:bg-black text-white font-bold text-xs gap-1.5 shadow-md cursor-pointer disabled:opacity-50"
+            >
+              {isAssigningStored ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCheck className="h-3.5 w-3.5" />}
+              Assign {selectedStoredTaskIds.length} Task(s) to {storedTargetInternIds.length} Intern(s)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit / Assign Task Credits Modal */}
+      {creditEditModal.open && (
+        <Dialog open={creditEditModal.open} onOpenChange={(open) => !open && setCreditEditModal({ ...creditEditModal, open: false })}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-slate-900" />
+                Allocate / Edit Task Credits
+              </DialogTitle>
+              <DialogDescription>
+                Assign or update credits for <strong>{creditEditModal.intern?.full_name}</strong> ({creditEditModal.milestoneName}).
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div>
+                <label className="text-xs font-bold text-slate-700 uppercase block mb-1">Task / Milestone Title</label>
+                <Input
+                  value={creditEditModal.taskTitle}
+                  onChange={(e) => setCreditEditModal({ ...creditEditModal, taskTitle: e.target.value })}
+                  placeholder="e.g. Task 1: Onboarding Evaluation"
+                  className="text-xs bg-white font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 uppercase block mb-1">Allocated Credits / Points</label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={creditEditModal.credits}
+                  onChange={(e) => setCreditEditModal({ ...creditEditModal, credits: parseInt(e.target.value) || 0 })}
+                  placeholder="e.g. 15"
+                  className="text-xs font-mono font-bold bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 uppercase block mb-1">Task Status</label>
+                <select
+                  value={creditEditModal.status}
+                  onChange={(e) => setCreditEditModal({ ...creditEditModal, status: e.target.value })}
+                  className="w-full rounded-md border p-2 text-xs bg-white font-medium"
+                >
+                  <option value="completed">Completed (Award Points Immediately)</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="submitted">Under Review / Submitted</option>
+                </select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreditEditModal({ ...creditEditModal, open: false })}>
+                Cancel
+              </Button>
+              <Button
+                disabled={isUpdatingCredits}
+                onClick={async () => {
+                  setIsUpdatingCredits(true);
+                  try {
+                    const res = await doAssignOrUpdateCredits({
+                      data: {
+                        taskId: creditEditModal.taskId,
+                        internId: creditEditModal.intern.id,
+                        taskTitle: creditEditModal.taskTitle,
+                        credits: creditEditModal.credits,
+                        status: creditEditModal.status
+                      }
+                    });
+                    toast.success(res.message || "Credits updated successfully!");
+                    setCreditEditModal({ ...creditEditModal, open: false });
+                    qc.invalidateQueries({ queryKey: ["admin-intern-tasks"] });
+                    qc.invalidateQueries({ queryKey: ["tasks"] });
+                    qc.invalidateQueries({ queryKey: ["my-tasks"] });
+                  } catch (err: any) {
+                    toast.error(err.message || "Failed to update credits");
+                  } finally {
+                    setIsUpdatingCredits(false);
+                  }
+                }}
+                className="bg-slate-900 hover:bg-black text-white font-bold"
+              >
+                {isUpdatingCredits ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save & Synchronize Points"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+
+
+
+
+

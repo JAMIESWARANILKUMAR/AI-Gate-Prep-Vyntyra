@@ -1,0 +1,375 @@
+import React, { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Sparkles,
+  Ticket,
+  Clock,
+  CheckCircle2,
+  Gift,
+  Zap,
+  ArrowRight,
+  Share2,
+  Copy,
+  Users,
+  ShieldCheck,
+  Loader2,
+  X,
+  AlertTriangle,
+} from "lucide-react";
+import {
+  submitAmbassadorApplication,
+  type AmbassadorProgramSettings,
+  DEFAULT_AMBASSADOR_SETTINGS,
+} from "@/lib/ambassador.functions";
+
+interface AmbassadorComingSoonModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  defaultEmail?: string;
+  defaultName?: string;
+  defaultPhone?: string;
+  defaultCollege?: string;
+  settings?: AmbassadorProgramSettings;
+}
+
+export function AmbassadorComingSoonModal({
+  open,
+  onOpenChange,
+  defaultEmail = "",
+  defaultName = "",
+  defaultPhone = "",
+  defaultCollege = "",
+  settings = DEFAULT_AMBASSADOR_SETTINGS,
+}: AmbassadorComingSoonModalProps) {
+  const submitAppFn = useServerFn(submitAmbassadorApplication);
+
+  const [fullName, setFullName] = useState(defaultName);
+  const [email, setEmail] = useState(defaultEmail);
+  const [phone, setPhone] = useState(defaultPhone);
+  const [collegeName, setCollegeName] = useState(defaultCollege);
+  const [degreeBranch, setDegreeBranch] = useState("Engineering & Technology");
+  const [loading, setLoading] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+  const [passNumber, setPassNumber] = useState("");
+
+  const isEnabled = settings.applications_enabled !== false;
+  const theme = settings.theme || DEFAULT_AMBASSADOR_SETTINGS.theme;
+
+  // Resolve popup settings with deep fallback
+  const popupBadge =
+    settings.popup?.badge || settings.popup_badge || "OFFICIAL APPLICATIONS OPENING SOON";
+  const popupTitle =
+    settings.popup?.title || settings.popup_title || "Vyntyra Institutional Relations Associate";
+  const popupSubtitle =
+    settings.popup?.subtitle ||
+    settings.popup_subtitle ||
+    "Campus Ambassador Program · First Cohort (2026-27)";
+  const popupAnnouncement =
+    settings.popup?.announcement_message ||
+    settings.popup_announcement_message ||
+    "The application portal is currently in its priority preview phase. Lock in your VIP Priority Pass to get screened before public rollout!";
+  const popupRewards =
+    settings.popup?.rewards_text || settings.popup_rewards_text || "Rewards up to ₹15,000*";
+  const ticketBadge = settings.popup?.ticket_badge || "VIP ADMISSION PASS";
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isEnabled) {
+      toast.error(settings.disabled_notice || "Applications are currently paused.");
+      return;
+    }
+
+    if (!fullName || !email || !phone || !collegeName) {
+      toast.error("Please fill in all fields to reserve your priority spot.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const generatedPass = `VCS-IRA-${Math.floor(1000 + Math.random() * 9000)}`;
+      await submitAppFn({
+        data: {
+          full_name: fullName,
+          email,
+          phone,
+          college_name: collegeName,
+          degree_branch: degreeBranch,
+          graduation_year: "2026",
+          city_state: "Campus Resident",
+          motivation: `VIP Early-Bird Waitlist Pass: ${generatedPass}`,
+        },
+      });
+
+      setPassNumber(generatedPass);
+      setConfirmed(true);
+      toast.success("Priority Spot Reserved! Welcome to First Cohort VIP Waitlist.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to reserve spot. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const shareOnWhatsApp = () => {
+    const text = encodeURIComponent(
+      `🚀 *I just reserved my VIP Priority Spot for the ${popupTitle} (${settings.cohort_name || "First Cohort 2026-27"})!*\n\nExclusive Welcome Kits (Dispatched after 1st milestone only), Branded Gadgets (Earbuds, Powerbanks, Watches), Rewards up to ₹15,000, and a Curated Travel Retreat for Top 10.\n\nPre-register before official applications close:\n👉 https://vyntyraconsultancyservices.in/campus-ambassador`
+    );
+    window.open(`https://wa.me/?text=${text}`, "_blank");
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText("https://vyntyraconsultancyservices.in/campus-ambassador");
+    toast.success("Ambassador Program link copied!");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        style={{
+          backgroundColor: theme.card_bg_color || "#090d1a",
+          borderColor: theme.card_border_color || "#1e293b",
+        }}
+        className="max-w-lg w-[95vw] p-0 border text-white shadow-2xl rounded-3xl overflow-hidden z-50"
+      >
+        {/* Top Accent Dynamic Gradient Stripe */}
+        <div
+          style={{
+            background: `linear-gradient(to right, ${theme.hero_heading_gradient_start || "#fbbf24"}, ${theme.hero_heading_gradient_mid || "#f43f5e"}, ${theme.hero_heading_gradient_end || "#818cf8"})`,
+          }}
+          className="h-2 w-full shrink-0"
+        />
+
+        <div className="p-6 sm:p-8 space-y-6 max-h-[88vh] overflow-y-auto">
+          {/* Header */}
+          <DialogHeader className="text-center space-y-2">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-300 text-[11px] font-mono font-bold tracking-widest uppercase mx-auto animate-pulse">
+              <Sparkles className="h-3 w-3 text-amber-400" />
+              {popupBadge}
+            </div>
+
+            <DialogTitle className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+              {popupTitle}
+            </DialogTitle>
+            <div className="text-xs sm:text-sm font-semibold text-amber-400">
+              {popupSubtitle}
+            </div>
+
+            <DialogDescription className="text-xs text-slate-300 leading-relaxed max-w-sm mx-auto">
+              {popupAnnouncement}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Golden VIP Ticket Card with Perforated Look */}
+          <div className="relative rounded-2xl border border-dashed border-amber-500/50 bg-gradient-to-r from-amber-500/10 via-slate-900 to-indigo-500/10 p-5 shadow-inner">
+            <div className="flex items-center justify-between text-xs font-mono text-amber-300 pb-2 border-b border-amber-500/20">
+              <span className="flex items-center gap-1.5 font-bold">
+                <Ticket className="h-4 w-4 text-amber-400" /> {ticketBadge}
+              </span>
+              <span>{settings.cohort_name || "COHORT 1.0"}</span>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Program Access
+                </div>
+                <div className="text-sm font-extrabold text-white">Campus Ambassador Lead</div>
+              </div>
+
+              <div className="text-right">
+                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Launch Phase
+                </div>
+                <div className="text-xs font-bold text-emerald-400 flex items-center gap-1 justify-end">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  Phase 1 Priority
+                </div>
+              </div>
+            </div>
+
+            {/* Early bird privileges list */}
+            <div className="mt-3 pt-3 border-t border-amber-500/20 grid grid-cols-2 gap-2 text-[11px] text-slate-300">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-3 w-3 text-amber-400 shrink-0" />
+                <span>Priority Interview Slot</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-3 w-3 text-amber-400 shrink-0" />
+                <span>Welcome Kit (After 1st Milestone)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0" />
+                <span>{popupRewards}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-3 w-3 text-pink-400 shrink-0" />
+                <span>Top 10 Travel Retreat</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Applications Paused Banner */}
+          {!isEnabled && (
+            <div className="p-4 rounded-2xl border border-rose-500/40 bg-rose-500/10 text-rose-200 text-xs flex items-start gap-2.5">
+              <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-white block">Applications Paused</span>
+                {settings.disabled_notice || "Pre-registrations are temporarily closed."}
+              </div>
+            </div>
+          )}
+
+          {confirmed ? (
+            /* Confirmation State */
+            <div className="text-center py-4 space-y-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-5">
+              <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 mx-auto flex items-center justify-center">
+                <CheckCircle2 className="h-8 w-8" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">VIP Pass #{passNumber} Confirmed!</h3>
+                <p className="mt-1 text-xs text-slate-300 leading-relaxed">
+                  Congratulations <strong>{fullName}</strong>! You have secured priority early-bird access for the {settings.cohort_name || "First Cohort"}.
+                </p>
+                <p className="mt-2 text-[11px] text-slate-400">
+                  We will dispatch the official application link and onboarding instructions to <strong>{email}</strong> upon launch.<br/>
+                  <span className="text-amber-400 font-medium">⭐ Note: Official Welcome Kits &amp; Swags will be dispatched after reaching 1st milestone only.</span>
+                </p>
+              </div>
+
+              <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
+                <Button
+                  onClick={shareOnWhatsApp}
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5"
+                >
+                  <Share2 className="h-3.5 w-3.5" /> Share on WhatsApp
+                </Button>
+                <Button
+                  onClick={copyLink}
+                  size="sm"
+                  variant="outline"
+                  className="border-slate-700 text-slate-300 hover:text-white text-xs gap-1.5"
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copy Link
+                </Button>
+              </div>
+            </div>
+          ) : (
+            /* Pre-Registration Form inside Modal */
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1 uppercase tracking-wider">
+                    Full Name *
+                  </label>
+                  <Input
+                    required
+                    disabled={!isEnabled}
+                    placeholder="e.g. Ananya Reddy"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="bg-slate-900/90 border-slate-800 text-white placeholder:text-slate-500 h-10 text-xs rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1 uppercase tracking-wider">
+                    Email Address *
+                  </label>
+                  <Input
+                    required
+                    disabled={!isEnabled}
+                    type="email"
+                    placeholder="name@college.edu"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="bg-slate-900/90 border-slate-800 text-white placeholder:text-slate-500 h-10 text-xs rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1 uppercase tracking-wider">
+                    WhatsApp Phone *
+                  </label>
+                  <Input
+                    required
+                    disabled={!isEnabled}
+                    placeholder="+91 98765 43210"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="bg-slate-900/90 border-slate-800 text-white placeholder:text-slate-500 h-10 text-xs rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1 uppercase tracking-wider">
+                    College / University *
+                  </label>
+                  <Input
+                    required
+                    disabled={!isEnabled}
+                    placeholder="e.g. IIT Madras, BITS, Andhra Univ"
+                    value={collegeName}
+                    onChange={(e) => setCollegeName(e.target.value)}
+                    className="bg-slate-900/90 border-slate-800 text-white placeholder:text-slate-500 h-10 text-xs rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1 uppercase tracking-wider">
+                  Degree & Branch
+                </label>
+                <Input
+                  disabled={!isEnabled}
+                  placeholder="e.g. B.Tech Computer Science / ECE / MBA"
+                  value={degreeBranch}
+                  onChange={(e) => setDegreeBranch(e.target.value)}
+                  className="bg-slate-900/90 border-slate-800 text-white placeholder:text-slate-500 h-10 text-xs rounded-xl"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !isEnabled}
+                style={{
+                  background: `linear-gradient(to right, ${theme.primary_btn_bg_start || "#f59e0b"}, ${theme.primary_btn_bg_end || "#eab308"})`,
+                  color: theme.primary_btn_text || "#020617",
+                }}
+                className="w-full font-black h-11 rounded-xl text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-amber-500/25 cursor-pointer mt-2 disabled:opacity-50 flex items-center justify-center gap-2 hover:scale-[1.01] transition-transform"
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Securing VIP Priority Pass...
+                  </span>
+                ) : !isEnabled ? (
+                  <span>Applications Currently Paused</span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    Claim VIP Early-Bird Pass <ArrowRight className="h-4 w-4" />
+                  </span>
+                )}
+              </button>
+
+              <p className="text-[10px] text-center text-slate-500">
+                ⚡ Strictly limited priority allocations for {settings.cohort_name || "First Cohort 2026-27"}.
+              </p>
+            </form>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

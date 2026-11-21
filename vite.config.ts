@@ -1,0 +1,59 @@
+import { defineConfig } from "vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import tsconfigPaths from "vite-tsconfig-paths";
+import { nitro } from "nitro/vite";
+import { cloudflare } from "@cloudflare/vite-plugin";
+
+const isVercel = Boolean(process.env.VERCEL || process.env.NOW_BUILDER);
+const isCloudflare = Boolean(
+  process.env.CLOUDFLARE ||
+  process.env.CF_PAGES ||
+  process.env.npm_lifecycle_event === "build:cf" ||
+  process.env.npm_lifecycle_event === "deploy:cf" ||
+  process.env.npm_lifecycle_event === "preview:cf" ||
+  !isVercel
+);
+
+export default defineConfig({
+  plugins: [
+    tailwindcss(),
+    tsconfigPaths(),
+    tanstackStart({
+      server: { entry: "server" },
+    }),
+    ...(process.env.CLOUDFLARE_VITE_PLUGIN === "true"
+      ? [cloudflare({ viteEnvironment: { name: "ssr" } })]
+      : []),
+    nitro({
+      preset: process.env.NITRO_PRESET || (isVercel ? "vercel" : (process.env.CF_PAGES ? "cloudflare-pages" : "cloudflare-module")),
+      vercel: {
+        functions: {
+          runtime: "nodejs22.x",
+        },
+      },
+    }),
+    viteReact(),
+    {
+      name: 'mock-mediapipe',
+      enforce: 'pre',
+      resolveId(id) {
+        if (id === '@mediapipe/face_detection') {
+          return '\0mock-mediapipe';
+        }
+        if (id === 'canvas') {
+          return '\0mock-canvas';
+        }
+      },
+      load(id) {
+        if (id === '\0mock-mediapipe') {
+          return `export const FaceDetection = class {}; export const VERSION = '';`;
+        }
+        if (id === '\0mock-canvas') {
+          return `export default {};`;
+        }
+      }
+    }
+  ],
+});
