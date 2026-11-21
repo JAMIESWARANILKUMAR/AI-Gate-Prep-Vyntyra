@@ -73,9 +73,7 @@ export function Header({ live = true }: HeaderProps) {
       <header className="border-b border-slate-200 bg-white sticky top-0 z-40 shrink-0">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3">
           <Link to="/" className="flex items-center gap-2.5 min-w-0 shrink">
-            <div className="h-9 w-9 rounded-sm bg-[#0A1F44] text-white flex items-center justify-center font-black tracking-wider text-sm shadow-xs">
-              GATE
-            </div>
+            <img src="/gate-emblem.svg" alt="GATE Official Emblem" className="h-9 w-9 object-contain" />
             <div className="flex flex-col">
               <span className="text-sm sm:text-base font-bold text-slate-900 leading-tight tracking-tight">
                 AI GATE PREP

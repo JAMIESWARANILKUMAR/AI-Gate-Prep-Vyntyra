@@ -24,29 +24,18 @@ import { Route as AgreementRouteImport } from './routes/agreement'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as MeetIndexRouteImport } from './routes/meet/index'
-import { Route as InterviewIndexRouteImport } from './routes/interview/index'
 import { Route as StatusTokenRouteImport } from './routes/status.$token'
-import { Route as MeetRoomIdRouteImport } from './routes/meet/$roomId'
-import { Route as InterviewSessionIdRouteImport } from './routes/interview/$sessionId'
-import { Route as CandidateInterviewsRouteImport } from './routes/candidate/interviews'
 import { Route as AuthInternRouteImport } from './routes/auth/intern'
 import { Route as AuthEmployeeRouteImport } from './routes/auth/employee'
 import { Route as AuthAdminRouteImport } from './routes/auth/admin'
-import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
 import { Route as AuthenticatedInternRouteImport } from './routes/_authenticated/intern'
 import { Route as AuthenticatedEmployeeRouteImport } from './routes/_authenticated/employee'
-import { Route as AuthenticatedCmsRouteImport } from './routes/_authenticated/cms'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
-import { Route as InterviewReportSessionIdRouteImport } from './routes/interview/report.$sessionId'
-import { Route as AuthenticatedEmployeeInterviewsRouteImport } from './routes/_authenticated/employee/interviews'
 import { Route as AuthenticatedCbtTestIdRouteImport } from './routes/_authenticated/cbt/$testId'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminSecurityRouteImport } from './routes/_authenticated/admin/security'
 import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_authenticated/admin/operations'
-import { Route as AuthenticatedAdminInterviewsRouteImport } from './routes/_authenticated/admin/interviews'
 import { Route as AuthenticatedAdminEmailCampaignsRouteImport } from './routes/_authenticated/admin/email-campaigns'
-import { Route as AuthenticatedAdminB2bPlaybookRouteImport } from './routes/_authenticated/admin/b2b-playbook'
 import { Route as AuthenticatedCbtResultsTestIdRouteImport } from './routes/_authenticated/cbt/results/$testId'
 
 const VerifyRoute = VerifyRouteImport.update({
@@ -123,35 +112,10 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MeetIndexRoute = MeetIndexRouteImport.update({
-  id: '/meet/',
-  path: '/meet/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InterviewIndexRoute = InterviewIndexRouteImport.update({
-  id: '/interview/',
-  path: '/interview/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const StatusTokenRoute = StatusTokenRouteImport.update({
   id: '/$token',
   path: '/$token',
   getParentRoute: () => StatusRoute,
-} as any)
-const MeetRoomIdRoute = MeetRoomIdRouteImport.update({
-  id: '/meet/$roomId',
-  path: '/meet/$roomId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InterviewSessionIdRoute = InterviewSessionIdRouteImport.update({
-  id: '/interview/$sessionId',
-  path: '/interview/$sessionId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CandidateInterviewsRoute = CandidateInterviewsRouteImport.update({
-  id: '/candidate/interviews',
-  path: '/candidate/interviews',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthInternRoute = AuthInternRouteImport.update({
   id: '/auth/intern',
@@ -168,11 +132,6 @@ const AuthAdminRoute = AuthAdminRouteImport.update({
   path: '/auth/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedTemplatesRoute = AuthenticatedTemplatesRouteImport.update({
-  id: '/templates',
-  path: '/templates',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedInternRoute = AuthenticatedInternRouteImport.update({
   id: '/intern',
   path: '/intern',
@@ -183,28 +142,11 @@ const AuthenticatedEmployeeRoute = AuthenticatedEmployeeRouteImport.update({
   path: '/employee',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedCmsRoute = AuthenticatedCmsRouteImport.update({
-  id: '/cms',
-  path: '/cms',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const InterviewReportSessionIdRoute =
-  InterviewReportSessionIdRouteImport.update({
-    id: '/interview/report/$sessionId',
-    path: '/interview/report/$sessionId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AuthenticatedEmployeeInterviewsRoute =
-  AuthenticatedEmployeeInterviewsRouteImport.update({
-    id: '/interviews',
-    path: '/interviews',
-    getParentRoute: () => AuthenticatedEmployeeRoute,
-  } as any)
 const AuthenticatedCbtTestIdRoute = AuthenticatedCbtTestIdRouteImport.update({
   id: '/cbt/$testId',
   path: '/cbt/$testId',
@@ -228,22 +170,10 @@ const AuthenticatedAdminOperationsRoute =
     path: '/admin/operations',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAdminInterviewsRoute =
-  AuthenticatedAdminInterviewsRouteImport.update({
-    id: '/admin/interviews',
-    path: '/admin/interviews',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedAdminEmailCampaignsRoute =
   AuthenticatedAdminEmailCampaignsRouteImport.update({
     id: '/admin/email-campaigns',
     path: '/admin/email-campaigns',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminB2bPlaybookRoute =
-  AuthenticatedAdminB2bPlaybookRouteImport.update({
-    id: '/admin/b2b-playbook',
-    path: '/admin/b2b-playbook',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCbtResultsTestIdRoute =
@@ -268,28 +198,17 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
   '/verify': typeof VerifyRoute
-  '/cms': typeof AuthenticatedCmsRoute
-  '/employee': typeof AuthenticatedEmployeeRouteWithChildren
+  '/employee': typeof AuthenticatedEmployeeRoute
   '/intern': typeof AuthenticatedInternRoute
-  '/templates': typeof AuthenticatedTemplatesRoute
   '/auth/admin': typeof AuthAdminRoute
   '/auth/employee': typeof AuthEmployeeRoute
   '/auth/intern': typeof AuthInternRoute
-  '/candidate/interviews': typeof CandidateInterviewsRoute
-  '/interview/$sessionId': typeof InterviewSessionIdRoute
-  '/meet/$roomId': typeof MeetRoomIdRoute
   '/status/$token': typeof StatusTokenRoute
-  '/interview/': typeof InterviewIndexRoute
-  '/meet/': typeof MeetIndexRoute
-  '/admin/b2b-playbook': typeof AuthenticatedAdminB2bPlaybookRoute
   '/admin/email-campaigns': typeof AuthenticatedAdminEmailCampaignsRoute
-  '/admin/interviews': typeof AuthenticatedAdminInterviewsRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsRoute
   '/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/cbt/$testId': typeof AuthenticatedCbtTestIdRoute
-  '/employee/interviews': typeof AuthenticatedEmployeeInterviewsRoute
-  '/interview/report/$sessionId': typeof InterviewReportSessionIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/cbt/results/$testId': typeof AuthenticatedCbtResultsTestIdRoute
 }
@@ -308,28 +227,17 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
   '/verify': typeof VerifyRoute
-  '/cms': typeof AuthenticatedCmsRoute
-  '/employee': typeof AuthenticatedEmployeeRouteWithChildren
+  '/employee': typeof AuthenticatedEmployeeRoute
   '/intern': typeof AuthenticatedInternRoute
-  '/templates': typeof AuthenticatedTemplatesRoute
   '/auth/admin': typeof AuthAdminRoute
   '/auth/employee': typeof AuthEmployeeRoute
   '/auth/intern': typeof AuthInternRoute
-  '/candidate/interviews': typeof CandidateInterviewsRoute
-  '/interview/$sessionId': typeof InterviewSessionIdRoute
-  '/meet/$roomId': typeof MeetRoomIdRoute
   '/status/$token': typeof StatusTokenRoute
-  '/interview': typeof InterviewIndexRoute
-  '/meet': typeof MeetIndexRoute
-  '/admin/b2b-playbook': typeof AuthenticatedAdminB2bPlaybookRoute
   '/admin/email-campaigns': typeof AuthenticatedAdminEmailCampaignsRoute
-  '/admin/interviews': typeof AuthenticatedAdminInterviewsRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsRoute
   '/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/cbt/$testId': typeof AuthenticatedCbtTestIdRoute
-  '/employee/interviews': typeof AuthenticatedEmployeeInterviewsRoute
-  '/interview/report/$sessionId': typeof InterviewReportSessionIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/cbt/results/$testId': typeof AuthenticatedCbtResultsTestIdRoute
 }
@@ -350,28 +258,17 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
   '/verify': typeof VerifyRoute
-  '/_authenticated/cms': typeof AuthenticatedCmsRoute
-  '/_authenticated/employee': typeof AuthenticatedEmployeeRouteWithChildren
+  '/_authenticated/employee': typeof AuthenticatedEmployeeRoute
   '/_authenticated/intern': typeof AuthenticatedInternRoute
-  '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
   '/auth/admin': typeof AuthAdminRoute
   '/auth/employee': typeof AuthEmployeeRoute
   '/auth/intern': typeof AuthInternRoute
-  '/candidate/interviews': typeof CandidateInterviewsRoute
-  '/interview/$sessionId': typeof InterviewSessionIdRoute
-  '/meet/$roomId': typeof MeetRoomIdRoute
   '/status/$token': typeof StatusTokenRoute
-  '/interview/': typeof InterviewIndexRoute
-  '/meet/': typeof MeetIndexRoute
-  '/_authenticated/admin/b2b-playbook': typeof AuthenticatedAdminB2bPlaybookRoute
   '/_authenticated/admin/email-campaigns': typeof AuthenticatedAdminEmailCampaignsRoute
-  '/_authenticated/admin/interviews': typeof AuthenticatedAdminInterviewsRoute
   '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRoute
   '/_authenticated/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/cbt/$testId': typeof AuthenticatedCbtTestIdRoute
-  '/_authenticated/employee/interviews': typeof AuthenticatedEmployeeInterviewsRoute
-  '/interview/report/$sessionId': typeof InterviewReportSessionIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/cbt/results/$testId': typeof AuthenticatedCbtResultsTestIdRoute
 }
@@ -392,28 +289,17 @@ export interface FileRouteTypes {
     | '/terms'
     | '/track'
     | '/verify'
-    | '/cms'
     | '/employee'
     | '/intern'
-    | '/templates'
     | '/auth/admin'
     | '/auth/employee'
     | '/auth/intern'
-    | '/candidate/interviews'
-    | '/interview/$sessionId'
-    | '/meet/$roomId'
     | '/status/$token'
-    | '/interview/'
-    | '/meet/'
-    | '/admin/b2b-playbook'
     | '/admin/email-campaigns'
-    | '/admin/interviews'
     | '/admin/operations'
     | '/admin/security'
     | '/admin/settings'
     | '/cbt/$testId'
-    | '/employee/interviews'
-    | '/interview/report/$sessionId'
     | '/admin/'
     | '/cbt/results/$testId'
   fileRoutesByTo: FileRoutesByTo
@@ -432,28 +318,17 @@ export interface FileRouteTypes {
     | '/terms'
     | '/track'
     | '/verify'
-    | '/cms'
     | '/employee'
     | '/intern'
-    | '/templates'
     | '/auth/admin'
     | '/auth/employee'
     | '/auth/intern'
-    | '/candidate/interviews'
-    | '/interview/$sessionId'
-    | '/meet/$roomId'
     | '/status/$token'
-    | '/interview'
-    | '/meet'
-    | '/admin/b2b-playbook'
     | '/admin/email-campaigns'
-    | '/admin/interviews'
     | '/admin/operations'
     | '/admin/security'
     | '/admin/settings'
     | '/cbt/$testId'
-    | '/employee/interviews'
-    | '/interview/report/$sessionId'
     | '/admin'
     | '/cbt/results/$testId'
   id:
@@ -473,28 +348,17 @@ export interface FileRouteTypes {
     | '/terms'
     | '/track'
     | '/verify'
-    | '/_authenticated/cms'
     | '/_authenticated/employee'
     | '/_authenticated/intern'
-    | '/_authenticated/templates'
     | '/auth/admin'
     | '/auth/employee'
     | '/auth/intern'
-    | '/candidate/interviews'
-    | '/interview/$sessionId'
-    | '/meet/$roomId'
     | '/status/$token'
-    | '/interview/'
-    | '/meet/'
-    | '/_authenticated/admin/b2b-playbook'
     | '/_authenticated/admin/email-campaigns'
-    | '/_authenticated/admin/interviews'
     | '/_authenticated/admin/operations'
     | '/_authenticated/admin/security'
     | '/_authenticated/admin/settings'
     | '/_authenticated/cbt/$testId'
-    | '/_authenticated/employee/interviews'
-    | '/interview/report/$sessionId'
     | '/_authenticated/admin/'
     | '/_authenticated/cbt/results/$testId'
   fileRoutesById: FileRoutesById
@@ -518,12 +382,6 @@ export interface RootRouteChildren {
   AuthAdminRoute: typeof AuthAdminRoute
   AuthEmployeeRoute: typeof AuthEmployeeRoute
   AuthInternRoute: typeof AuthInternRoute
-  CandidateInterviewsRoute: typeof CandidateInterviewsRoute
-  InterviewSessionIdRoute: typeof InterviewSessionIdRoute
-  MeetRoomIdRoute: typeof MeetRoomIdRoute
-  InterviewIndexRoute: typeof InterviewIndexRoute
-  MeetIndexRoute: typeof MeetIndexRoute
-  InterviewReportSessionIdRoute: typeof InterviewReportSessionIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -633,47 +491,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/meet/': {
-      id: '/meet/'
-      path: '/meet'
-      fullPath: '/meet/'
-      preLoaderRoute: typeof MeetIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/interview/': {
-      id: '/interview/'
-      path: '/interview'
-      fullPath: '/interview/'
-      preLoaderRoute: typeof InterviewIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/status/$token': {
       id: '/status/$token'
       path: '/$token'
       fullPath: '/status/$token'
       preLoaderRoute: typeof StatusTokenRouteImport
       parentRoute: typeof StatusRoute
-    }
-    '/meet/$roomId': {
-      id: '/meet/$roomId'
-      path: '/meet/$roomId'
-      fullPath: '/meet/$roomId'
-      preLoaderRoute: typeof MeetRoomIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/interview/$sessionId': {
-      id: '/interview/$sessionId'
-      path: '/interview/$sessionId'
-      fullPath: '/interview/$sessionId'
-      preLoaderRoute: typeof InterviewSessionIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/candidate/interviews': {
-      id: '/candidate/interviews'
-      path: '/candidate/interviews'
-      fullPath: '/candidate/interviews'
-      preLoaderRoute: typeof CandidateInterviewsRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/auth/intern': {
       id: '/auth/intern'
@@ -696,13 +519,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/templates': {
-      id: '/_authenticated/templates'
-      path: '/templates'
-      fullPath: '/templates'
-      preLoaderRoute: typeof AuthenticatedTemplatesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/intern': {
       id: '/_authenticated/intern'
       path: '/intern'
@@ -717,33 +533,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEmployeeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/cms': {
-      id: '/_authenticated/cms'
-      path: '/cms'
-      fullPath: '/cms'
-      preLoaderRoute: typeof AuthenticatedCmsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/interview/report/$sessionId': {
-      id: '/interview/report/$sessionId'
-      path: '/interview/report/$sessionId'
-      fullPath: '/interview/report/$sessionId'
-      preLoaderRoute: typeof InterviewReportSessionIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/employee/interviews': {
-      id: '/_authenticated/employee/interviews'
-      path: '/interviews'
-      fullPath: '/employee/interviews'
-      preLoaderRoute: typeof AuthenticatedEmployeeInterviewsRouteImport
-      parentRoute: typeof AuthenticatedEmployeeRoute
     }
     '/_authenticated/cbt/$testId': {
       id: '/_authenticated/cbt/$testId'
@@ -773,25 +568,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOperationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin/interviews': {
-      id: '/_authenticated/admin/interviews'
-      path: '/admin/interviews'
-      fullPath: '/admin/interviews'
-      preLoaderRoute: typeof AuthenticatedAdminInterviewsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/admin/email-campaigns': {
       id: '/_authenticated/admin/email-campaigns'
       path: '/admin/email-campaigns'
       fullPath: '/admin/email-campaigns'
       preLoaderRoute: typeof AuthenticatedAdminEmailCampaignsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin/b2b-playbook': {
-      id: '/_authenticated/admin/b2b-playbook'
-      path: '/admin/b2b-playbook'
-      fullPath: '/admin/b2b-playbook'
-      preLoaderRoute: typeof AuthenticatedAdminB2bPlaybookRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/cbt/results/$testId': {
@@ -804,27 +585,10 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedEmployeeRouteChildren {
-  AuthenticatedEmployeeInterviewsRoute: typeof AuthenticatedEmployeeInterviewsRoute
-}
-
-const AuthenticatedEmployeeRouteChildren: AuthenticatedEmployeeRouteChildren = {
-  AuthenticatedEmployeeInterviewsRoute: AuthenticatedEmployeeInterviewsRoute,
-}
-
-const AuthenticatedEmployeeRouteWithChildren =
-  AuthenticatedEmployeeRoute._addFileChildren(
-    AuthenticatedEmployeeRouteChildren,
-  )
-
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedCmsRoute: typeof AuthenticatedCmsRoute
-  AuthenticatedEmployeeRoute: typeof AuthenticatedEmployeeRouteWithChildren
+  AuthenticatedEmployeeRoute: typeof AuthenticatedEmployeeRoute
   AuthenticatedInternRoute: typeof AuthenticatedInternRoute
-  AuthenticatedTemplatesRoute: typeof AuthenticatedTemplatesRoute
-  AuthenticatedAdminB2bPlaybookRoute: typeof AuthenticatedAdminB2bPlaybookRoute
   AuthenticatedAdminEmailCampaignsRoute: typeof AuthenticatedAdminEmailCampaignsRoute
-  AuthenticatedAdminInterviewsRoute: typeof AuthenticatedAdminInterviewsRoute
   AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRoute
   AuthenticatedAdminSecurityRoute: typeof AuthenticatedAdminSecurityRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
@@ -834,13 +598,9 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedCmsRoute: AuthenticatedCmsRoute,
-  AuthenticatedEmployeeRoute: AuthenticatedEmployeeRouteWithChildren,
+  AuthenticatedEmployeeRoute: AuthenticatedEmployeeRoute,
   AuthenticatedInternRoute: AuthenticatedInternRoute,
-  AuthenticatedTemplatesRoute: AuthenticatedTemplatesRoute,
-  AuthenticatedAdminB2bPlaybookRoute: AuthenticatedAdminB2bPlaybookRoute,
   AuthenticatedAdminEmailCampaignsRoute: AuthenticatedAdminEmailCampaignsRoute,
-  AuthenticatedAdminInterviewsRoute: AuthenticatedAdminInterviewsRoute,
   AuthenticatedAdminOperationsRoute: AuthenticatedAdminOperationsRoute,
   AuthenticatedAdminSecurityRoute: AuthenticatedAdminSecurityRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
@@ -882,12 +642,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthAdminRoute: AuthAdminRoute,
   AuthEmployeeRoute: AuthEmployeeRoute,
   AuthInternRoute: AuthInternRoute,
-  CandidateInterviewsRoute: CandidateInterviewsRoute,
-  InterviewSessionIdRoute: InterviewSessionIdRoute,
-  MeetRoomIdRoute: MeetRoomIdRoute,
-  InterviewIndexRoute: InterviewIndexRoute,
-  MeetIndexRoute: MeetIndexRoute,
-  InterviewReportSessionIdRoute: InterviewReportSessionIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

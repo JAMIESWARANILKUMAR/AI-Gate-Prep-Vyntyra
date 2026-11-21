@@ -132,7 +132,7 @@ function OperationsDashboard() {
   const qc = useQueryClient();
   const searchParams = Route.useSearch();
   const navigate = Route.useNavigate();
-  const [activeTab, setActiveTab] = useState<string>((searchParams as any)?.tab || "overview");
+  const [activeTab, setActiveTab] = useState<string>((searchParams as any)?.tab || "gate-vault");
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 

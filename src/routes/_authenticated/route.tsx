@@ -34,7 +34,7 @@ function AuthenticatedLayout() {
             setIsAuthenticated(false);
             setChecking(false);
             const p = location.pathname;
-            const isAdminRoute = p.startsWith("/admin") || p === "/cms" || p === "/templates";
+            const isAdminRoute = p.startsWith("/admin");
             const isInternRoute = p.startsWith("/intern") || p.startsWith("/cbt");
             navigate({ to: isAdminRoute ? "/auth/admin" : isInternRoute ? "/auth/intern" : "/auth/employee" });
           } else {
@@ -57,7 +57,7 @@ function AuthenticatedLayout() {
         clearAllCookies();
         setIsAuthenticated(false);
         const p = location.pathname;
-        const isAdminRoute = p.startsWith("/admin") || p === "/cms" || p === "/templates";
+        const isAdminRoute = p.startsWith("/admin");
         const isInternRoute = p.startsWith("/intern") || p.startsWith("/cbt");
         navigate({ to: isAdminRoute ? "/auth/admin" : isInternRoute ? "/auth/intern" : "/auth/employee" });
       } else if (session) {

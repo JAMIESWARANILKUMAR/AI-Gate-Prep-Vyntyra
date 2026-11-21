@@ -126,15 +126,13 @@ function HomePage() {
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-slate-900 selection:text-white">
       {/* Platform Navigation */}
-      <nav className="sticky top-0 z-40 bg-white/95 border-b border-slate-200">
+      <nav className="sticky top-0 z-40 bg-white/95 border-b border-slate-200 backdrop-blur-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold font-mono text-sm">
-              GATE
-            </div>
+            <img src="/gate-emblem.svg" alt="GATE Official Emblem" className="h-10 w-10 object-contain" />
             <div>
               <span className="font-bold text-sm tracking-tight text-slate-900 block">AI GATE Prep Platform</span>
-              <span className="text-[10px] text-slate-500 font-mono block">Enterprise Assessment Architecture</span>
+              <span className="text-[10px] text-slate-500 font-mono block">National Coordination Board (NCB) Aligned</span>
             </div>
           </Link>
 
@@ -162,7 +160,13 @@ function HomePage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="py-20 px-4 sm:px-6 max-w-5xl mx-auto text-center">
+      <section className="py-16 sm:py-20 px-4 sm:px-6 max-w-5xl mx-auto text-center">
+        {/* Official GATE Emblem & NCB Banner */}
+        <div className="flex flex-col items-center justify-center gap-4 mb-6">
+          <img src="/gate-logo.svg" alt="Official GATE Logo" className="h-16 sm:h-20 max-w-full object-contain" />
+          <img src="/iit-iisc-banner.svg" alt="IISc Bangalore and 7 IITs National Coordination Board" className="w-full max-w-xl object-contain rounded-md border border-slate-200 shadow-2xs" />
+        </div>
+
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-mono font-semibold mb-6">
           <Shield className="h-3.5 w-3.5 text-emerald-600" />
           GATE 2026 Ready • Computer Science, Data Science, EC, EE, ME, CE

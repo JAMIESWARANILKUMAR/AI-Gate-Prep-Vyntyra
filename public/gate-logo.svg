@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 100" width="100%" height="100%">
+  <!-- Embellished GATE Insignia -->
+  <g transform="translate(10, 10)">
+    <!-- Outer Shield / Hexagonal Gear -->
+    <circle cx="40" cy="40" r="38" fill="#0A1F44" stroke="#D97706" stroke-width="2.5" />
+    <circle cx="40" cy="40" r="33" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="3,3" opacity="0.6" />
+    
+    <!-- Central Atomic / Electron Orbits -->
+    <ellipse cx="40" cy="40" rx="22" ry="8" fill="none" stroke="#38BDF8" stroke-width="1.8" transform="rotate(30 40 40)" opacity="0.85" />
+    <ellipse cx="40" cy="40" rx="22" ry="8" fill="none" stroke="#38BDF8" stroke-width="1.8" transform="rotate(-30 40 40)" opacity="0.85" />
+    <ellipse cx="40" cy="40" rx="22" ry="8" fill="none" stroke="#FBBF24" stroke-width="1.8" transform="rotate(90 40 40)" opacity="0.85" />
+    
+    <!-- Open Book of Knowledge -->
+    <path d="M 27 50 Q 40 44 40 33 Q 40 44 53 50 L 53 52 Q 40 46 40 35 Q 40 46 27 52 Z" fill="#FFFFFF" />
+    <path d="M 27 50 L 27 53 Q 40 47 40 36 L 40 33 Q 40 44 27 50" fill="#E2E8F0" />
+    <path d="M 53 50 L 53 53 Q 40 47 40 36 L 40 33 Q 40 44 53 50" fill="#CBD5E1" />
+
+    <!-- Core Nucleus / Torch Spark -->
+    <circle cx="40" cy="27" r="3.5" fill="#F59E0B" />
+    <path d="M 40 21 L 41.5 25 L 40 26 L 38.5 25 Z" fill="#FDE68A" />
+  </g>
+
+  <!-- Typography -->
+  <!-- GATE Acronym -->
+  <text x="105" y="48" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="38" fill="#0A1F44" letter-spacing="3">GATE</text>
+  
+  <!-- Divider Line -->
+  <line x1="240" y1="20" x2="240" y2="76" stroke="#CBD5E1" stroke-width="2" />
+
+  <!-- Subtitle Text -->
+  <text x="252" y="36" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="12" fill="#0A1F44" letter-spacing="0.5">GRADUATE APTITUDE TEST</text>
+  <text x="252" y="52" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="12" fill="#0A1F44" letter-spacing="0.5">IN ENGINEERING</text>
+  <text x="252" y="68" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="10" fill="#64748B" letter-spacing="1.2">IISc &amp; IITs · ALL-INDIA</text>
+</svg>
