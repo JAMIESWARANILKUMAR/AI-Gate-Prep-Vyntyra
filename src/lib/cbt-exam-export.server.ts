@@ -69,17 +69,17 @@ export async function generateCbtExamPdf({
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
     doc.setTextColor(navy[0], navy[1], navy[2]);
-    doc.text("VYNTYRA CONSULTANCY SERVICES", textX, y + 4.5);
+    doc.text("GRADUATE APTITUDE TEST IN ENGINEERING (GATE)", textX, y + 4.5);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(slate[0], slate[1], slate[2]);
-    doc.text("DIRECTORATE OF TECHNICAL ASSESSMENTS & EXAMINATIONS • PROJECT VYNEXA", textX, y + 9);
+    doc.text("OFFICIAL QUESTION PAPER & BENCHMARK SOLUTION GUIDE • AI GATE PREP", textX, y + 9);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     doc.setTextColor(slateLight[0], slateLight[1], slateLight[2]);
-    doc.text("ISO 9001:2015 Certified  |  MSME Reg: UDYAM-AP-10-0143100  |  Visakhapatnam, AP, India", textX, y + 13.5);
+    doc.text("Standardized Exam Architecture  |  MCQ, MSQ & NAT Format  |  National Examination Standard", textX, y + 13.5);
 
     // Right Official Paper Badge
     doc.setFillColor(navy[0], navy[1], navy[2]);
@@ -107,7 +107,7 @@ export async function generateCbtExamPdf({
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.8);
     doc.setTextColor(slate[0], slate[1], slate[2]);
-    doc.text("CONFIDENTIAL & PROPRIETARY • VYNTYRA CONSULTANCY SERVICES PVT. LTD. • ALL RIGHTS RESERVED", ML, PH - 9);
+    doc.text("GRADUATE APTITUDE TEST IN ENGINEERING • OFFICIAL PRINT-READY QUESTION PAPER • AI GATE PLATFORM", ML, PH - 9);
     doc.setFont("helvetica", "bold");
     doc.text(`Page ${pageNum} of ${totalPages}`, MR, PH - 9, { align: "right" });
   };

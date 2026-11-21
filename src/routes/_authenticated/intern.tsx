@@ -1,3 +1,6 @@
+import { GateVaultView } from "@/components/gate-vault-view";
+import { GateHighScoreRoadmap } from "@/components/gate-high-score-roadmap";
+import { GateLeaderboardView } from "@/components/gate-leaderboard-view";
 import { InternChatView } from "@/components/intern-chat-view";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -261,7 +264,7 @@ function CbtResultsSection() {
 function InternDashboard() {
   const qc = useQueryClient();
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "onboarding" | "lms" | "browser" | "kanban" | "standups" | "deliverables" | "ppo" | "tasks" | "meetings" | "resources" | "notes" | "feedback" | "attendance" | "announcements" | "leaves" | "support" | "refer" | "cbt" | "mock_interview" | "ambassador" | "chat">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "onboarding" | "lms" | "browser" | "kanban" | "standups" | "deliverables" | "ppo" | "tasks" | "meetings" | "resources" | "notes" | "feedback" | "attendance" | "announcements" | "leaves" | "support" | "refer" | "cbt" | "mock_interview" | "ambassador" | "chat" | "vault" | "roadmap" | "leaderboard">("overview");
   const [newNote, setNewNote] = useState("");
   const [feedback, setFeedback] = useState("");
   const [copiedCode, setCopiedCode] = useState(false);
@@ -1094,7 +1097,10 @@ function InternDashboard() {
     { id: "leaves",         label: `Leaves (${myLeaves.length})`, shortLabel: "Leaves", icon: CalendarDays, category: "Connect & Support", enabled: isModuleEnabled("leaves") },
     { id: "support",        label: `Support (${supportQueries.length})`, shortLabel: "Support", icon: HelpCircle, category: "Connect & Support", enabled: isModuleEnabled("support") },
     { id: "refer",          label: "Refer & Earn", shortLabel: "Refer", icon: DollarSign, category: "Connect & Support", enabled: isModuleEnabled("refer") },
-    { id: "cbt", label: "AI CBT Exams", shortLabel: "CBT", icon: BrainCircuit, category: "Connect & Support", enabled: isModuleEnabled("cbt"), isNew: true },
+    { id: "cbt", label: "Mock & Practice Tests", shortLabel: "Tests", icon: BrainCircuit, category: "Core Work", enabled: true, isNew: true },
+    { id: "vault", label: "PYQ & Syllabus Vault", shortLabel: "Vault", icon: BookOpen, category: "Core Work", enabled: true },
+    { id: "roadmap", label: "High-Score Roadmap", shortLabel: "Roadmap", icon: Target, category: "Core Work", enabled: true },
+    { id: "leaderboard", label: "All-India Leaderboard", shortLabel: "AIR Matrix", icon: Trophy, category: "Core Work", enabled: true },
     { id: "mock_interview", label: "AI Mock Interview", shortLabel: "AI Interview", icon: Sparkles, category: "Core Work", enabled: isModuleEnabled("mock_interview"), isNew: true },
     { id: "ambassador", label: "Campus Ambassador", shortLabel: "Ambassador", icon: Award, category: "Connect & Support", enabled: isModuleEnabled("ambassador"), isNew: true },
     { id: "notes",          label: "Notes", shortLabel: "Notes", icon: FileText, category: "Connect & Support", enabled: isModuleEnabled("notes") },
@@ -4221,6 +4227,24 @@ function InternDashboard() {
         {activeTab === "ambassador" && (
             <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500 pb-12">
               <InternAmbassadorView profile={profile} application={profile} />
+            </div>
+          )}
+
+        {activeTab === "vault" && (
+            <div className="space-y-6 pb-12">
+              <GateVaultView />
+            </div>
+          )}
+
+        {activeTab === "roadmap" && (
+            <div className="space-y-6 pb-12">
+              <GateHighScoreRoadmap studentId={session?.user?.id || profile?.id || "student"} />
+            </div>
+          )}
+
+        {activeTab === "leaderboard" && (
+            <div className="space-y-6 pb-12">
+              <GateLeaderboardView currentUserId={session?.user?.id} />
             </div>
           )}
 

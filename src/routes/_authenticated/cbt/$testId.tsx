@@ -1,3 +1,5 @@
+import { GateScientificCalculator } from "@/components/gate-scientific-calculator";
+import { Calculator } from "lucide-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -72,6 +74,12 @@ function normalizeOptions(options: any, questionType?: string): Array<{ id: stri
 function getBadgeInfo(type: string) {
   const norm = (type || "").toLowerCase();
   switch (norm) {
+    case "msq":
+      return { label: "GATE MSQ (MULTIPLE SELECT)", color: "bg-purple-100 text-purple-800 border-purple-300" };
+    case "nat":
+      return { label: "GATE NAT (NUMERICAL ANSWER)", color: "bg-amber-100 text-amber-800 border-amber-300" };
+    case "mcq":
+      return { label: "GATE MCQ (SINGLE SELECT)", color: "bg-emerald-100 text-emerald-800 border-emerald-300" };
     case "true_false":
       return { label: "TRUE / FALSE", color: "bg-amber-100 text-amber-800 border-amber-300" };
     case "scenario":
@@ -90,9 +98,8 @@ function getBadgeInfo(type: string) {
       return { label: "WRITTEN RESPONSE", color: "bg-indigo-100 text-indigo-800 border-indigo-300" };
     case "aptitude":
       return { label: "APTITUDE REASONING", color: "bg-orange-100 text-orange-800 border-orange-300" };
-    case "mcq":
     default:
-      return { label: "MULTIPLE CHOICE", color: "bg-slate-200 text-slate-700 border-slate-300" };
+      return { label: "GATE EXAMINATION", color: "bg-slate-200 text-slate-700 border-slate-300" };
   }
 }
 
@@ -104,6 +111,9 @@ function CbtExamInterface() {
   const { testId } = Route.useParams();
   const navigate = useNavigate();
   const [isDesktop, setIsDesktop] = useState(true);
+  const [calcOpen, setCalcOpen] = useState(false);
+  const [markedForReview, setMarkedForReview] = useState<Record<string, boolean>>({});
+  const [visitedQuestions, setVisitedQuestions] = useState<Record<string, boolean>>({});
 
   const [test, setTest] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -294,6 +304,13 @@ function CbtExamInterface() {
     }
   };
 
+  // Mark active question visited
+  useEffect(() => {
+    if (questions[activeQ]?.id) {
+      setVisitedQuestions(prev => ({ ...prev, [questions[activeQ].id]: true }));
+    }
+  }, [activeQ, questions]);
+
   // 1. Desktop Window Size check
   useEffect(() => {
     const checkSize = () => setIsDesktop(window.innerWidth >= 1024);
@@ -316,21 +333,65 @@ function CbtExamInterface() {
 
     if (testId === "demo") {
       setTest({ 
-        title: "VyNexa Portal Familiarization Demo", 
-        description: "This is a 5-question demo to familiarize yourself with the VyNexa portal CBT engine.", 
-        time_limit_minutes: 10, 
-        passing_score: 80, 
-        internId: "INT-DEMO-PREVIEW" 
+        title: "Official GATE CBT Familiarization Test (CS & DA)", 
+        description: "Official mock examination showcasing MCQ, MSQ, and NAT question formats with virtual scientific calculator.", 
+        time_limit_minutes: 15, 
+        passing_score: 50, 
+        internId: "GATE-ASP-DEMO" 
       });
       setQuestions([
-        { id: "demo-q1", question_type: "mcq", question_text: "What is the primary color of the VyNexa dashboard theme?", options: [{id: "A", text: "Emerald"}, {id: "B", text: "Crimson"}, {id: "C", text: "Indigo"}] },
-        { id: "demo-q2", question_type: "true_false", question_text: "JavaScript 'Constructors' are used to create new objects based on a blueprint.", options: [{id: "A", text: "True"}, {id: "B", text: "False"}] },
-        { id: "demo-q3", question_type: "scenario", question_text: "Scenario: An intern's camera stream drops during an exam due to a brief network glitch. As a proctoring policy, what should happen?", options: [{id: "A", text: "A 20-second malpractice warning appears with grace timer"}, {id: "B", text: "The test is immediately terminated with 0 score"}, {id: "C", text: "The candidate's computer restarts"}, {id: "D", text: "Nothing happens and proctoring is permanently disabled"}] },
-        { id: "demo-q4", question_type: "code_snippet", question_text: "What will the following code snippet log to the console?\n\nconst [a, ...b] = [1, 2, 3, 4];\nconsole.log(b.length);", reference_code: "const [a, ...b] = [1, 2, 3, 4];\nconsole.log(b.length);", options: [{id: "A", text: "3"}, {id: "B", text: "4"}, {id: "C", text: "1"}, {id: "D", text: "undefined"}] },
-        { id: "demo-q5", question_type: "coding", question_text: "Write a simple function `getGreeting(name)` that returns `'Hello, ' + name`.", reference_code: "function getGreeting(name) {\n  // Write implementation\n  return 'Hello, ' + name;\n}", test_cases: [{ input: "VyNexa", expected_output: "Hello, VyNexa" }] },
-        { id: "demo-q6", question_type: "short_answer", question_text: "Briefly explain the role of proctoring in technical assessments." }
+        { 
+          id: "demo-q1", 
+          question_type: "mcq", 
+          max_points: 2,
+          question_text: "Which of the following problems is decidable for a deterministic Turing Machine?", 
+          options: [
+            { id: "A", text: "Whether the language accepted is finite" },
+            { id: "B", text: "Whether the language accepted is regular" },
+            { id: "C", text: "Whether the Turing Machine halts on an empty tape" },
+            { id: "D", text: "None of the above" }
+          ] 
+        },
+        { 
+          id: "demo-q2", 
+          question_type: "msq", 
+          max_points: 2,
+          question_text: "Which of the following statements is/are TRUE for a Red-Black tree with n internal nodes?", 
+          options: [
+            { id: "A", text: "The height of the tree is at most 2 * log2(n + 1)" },
+            { id: "B", text: "Every leaf (NIL) is black" },
+            { id: "C", text: "If a node is red, both of its children must be black" },
+            { id: "D", text: "The root node can be either red or black" }
+          ] 
+        },
+        { 
+          id: "demo-q3", 
+          question_type: "nat", 
+          max_points: 1,
+          question_text: "Consider the matrix A = [[4, 2], [3, 5]]. The determinant of matrix A is equal to ________ (answer in integer).", 
+          options: [] 
+        },
+        { 
+          id: "demo-q4", 
+          question_type: "mcq", 
+          max_points: 1,
+          question_text: "In the IPv4 header, what is the total header length in bytes when the IHL (Internet Header Length) field has a decimal value of 10?", 
+          options: [
+            { id: "A", text: "20 bytes" },
+            { id: "B", text: "40 bytes" },
+            { id: "C", text: "60 bytes" },
+            { id: "D", text: "160 bytes" }
+          ] 
+        },
+        { 
+          id: "demo-q5", 
+          question_type: "nat", 
+          max_points: 2,
+          question_text: "A 32-bit byte-addressable processor has a direct-mapped cache of size 64 KB with a cache block size of 16 bytes. How many bits are required for the cache index field?", 
+          options: [] 
+        }
       ]);
-      setTimeLeft(60);
+      setTimeLeft(180);
       return;
     }
 
@@ -631,9 +692,9 @@ function CbtExamInterface() {
         <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden flex flex-wrap gap-x-14 gap-y-16 opacity-[0.035] rotate-[-25deg] scale-150 justify-center items-center select-none">
           {Array.from({ length: 140 }).map((_, i) => (
             <div key={i} className="flex items-center gap-2.5 whitespace-nowrap font-mono">
-              <span className="text-xl font-black text-slate-900 tracking-wider">Vyntyra</span>
+              <span className="text-xl font-black text-slate-900 tracking-wider">GATE PREP</span>
               <span className="text-xl font-bold text-slate-400">•</span>
-              <span className="text-xl font-black text-slate-800 tracking-widest">{test?.internId || "INT-SECURE"}</span>
+              <span className="text-xl font-black text-slate-800 tracking-widest">{test?.internId || "GATE-ASPIRANT"}</span>
             </div>
           ))}
         </div>
@@ -961,12 +1022,45 @@ function CbtExamInterface() {
 
   const normOpts = normalizeOptions(q?.options, q?.question_type);
   const qType = (q?.question_type || "mcq").toLowerCase();
+  const isMSQ = qType === "msq";
+  const isNAT = qType === "nat";
   const isTrueFalse = qType === "true_false";
   const isCoding = qType === "coding";
   const isCodeSnippet = qType === "code_snippet" || qType === "code_based" || qType === "sql";
   const isScenario = qType === "scenario" || qType === "scenario_based" || Boolean(q?.question_text?.toLowerCase().includes("scenario:"));
   const hasOptions = normOpts.length > 0;
   const badgeInfo = getBadgeInfo(q?.question_type);
+
+  // GATE 5-state Palette evaluation helper
+  const getQuestionStatus = (questionId: string, index: number) => {
+    const ans = answers[questionId];
+    let isAns = false;
+    if (Array.isArray(ans)) {
+      isAns = ans.length > 0;
+    } else if (typeof ans === "object" && ans !== null) {
+      isAns = Boolean(ans.id || ans.text);
+    } else if (typeof ans === "string" || typeof ans === "number") {
+      isAns = String(ans).trim().length > 0;
+    }
+
+    const isMarked = Boolean(markedForReview[questionId]);
+    const isVisited = Boolean(visitedQuestions[questionId]) || index === activeQ;
+
+    if (isAns && isMarked) return "answered_marked";
+    if (isMarked) return "marked";
+    if (isAns) return "answered";
+    if (isVisited) return "not_answered";
+    return "not_visited";
+  };
+
+  const statusCounts = questions.reduce(
+    (acc, item, i) => {
+      const s = getQuestionStatus(item.id, i);
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    },
+    { answered: 0, not_answered: 0, not_visited: 0, marked: 0, answered_marked: 0 } as Record<string, number>
+  );
 
   const isTrueSelected = (
     answers[q?.id]?.id === "A" || 
@@ -1139,30 +1233,78 @@ function CbtExamInterface() {
               )}
             </div>
 
-            {/* Question Palette */}
+            {/* Question Palette (GATE TCS iON Standard) */}
             <div className="mb-6">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold text-slate-600 text-[10px] uppercase tracking-widest">Question Palette</h3>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-bold text-slate-700 text-[10px] uppercase tracking-widest">GATE Question Palette</h3>
                 <span className="text-slate-500 text-[10px] font-mono font-bold">
-                  {Object.keys(answers).length}/{questions.length} Answered
+                  {statusCounts.answered + statusCounts.answered_marked}/{questions.length} Done
                 </span>
               </div>
+
+              {/* 5-State Legend */}
+              <div className="grid grid-cols-2 gap-1.5 p-2 bg-white border border-slate-200 rounded-sm text-[10px] font-medium text-slate-700 mb-3 shadow-2xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-4 w-5 rounded-xs bg-emerald-600 text-white font-bold flex items-center justify-center text-[9px] shrink-0">
+                    {statusCounts.answered}
+                  </span>
+                  <span className="truncate">Answered</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-4 w-5 rounded-xs bg-rose-500 text-white font-bold flex items-center justify-center text-[9px] shrink-0">
+                    {statusCounts.not_answered}
+                  </span>
+                  <span className="truncate">Not Answered</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-4 w-5 rounded-xs bg-slate-100 text-slate-700 border border-slate-300 font-bold flex items-center justify-center text-[9px] shrink-0">
+                    {statusCounts.not_visited}
+                  </span>
+                  <span className="truncate">Not Visited</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-4 w-5 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[9px] shrink-0">
+                    {statusCounts.marked}
+                  </span>
+                  <span className="truncate">Review</span>
+                </div>
+                <div className="col-span-2 flex items-center gap-1.5 pt-1.5 border-t border-slate-100 text-[9px] text-slate-600">
+                  <span className="h-4 w-5 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[9px] shrink-0 relative">
+                    {statusCounts.answered_marked}
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5 border border-white" />
+                  </span>
+                  <span>Ans & Marked (Evaluated in GATE)</span>
+                </div>
+              </div>
               
-              <div className="grid grid-cols-5 gap-2">
-                {questions.map((_, i) => {
-                  const isAns = answers[questions[i].id];
+              <div className="grid grid-cols-5 gap-1.5 max-h-[190px] overflow-y-auto p-0.5 custom-scrollbar">
+                {questions.map((item, i) => {
+                  const status = getQuestionStatus(item.id, i);
                   const isActive = activeQ === i;
+
+                  let btnStyle = "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200";
+                  if (status === "answered") {
+                    btnStyle = "bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700";
+                  } else if (status === "not_answered") {
+                    btnStyle = "bg-rose-500 text-white border-rose-600 hover:bg-rose-600";
+                  } else if (status === "marked") {
+                    btnStyle = "bg-indigo-600 text-white border-indigo-700 rounded-full hover:bg-indigo-700";
+                  } else if (status === "answered_marked") {
+                    btnStyle = "bg-indigo-600 text-white border-indigo-700 rounded-full hover:bg-indigo-700 relative";
+                  }
+
                   return (
                     <button 
-                      key={i} 
+                      key={item.id || i} 
                       onClick={() => switchQuestion(i)}
-                      className={`h-10 rounded-sm font-bold text-xs transition-colors border ${
-                        isActive ? "bg-slate-800 text-white border-slate-900" : 
-                        isAns ? "bg-emerald-100 text-emerald-800 border-emerald-300" : 
-                        "bg-white text-slate-600 border-slate-300 hover:bg-slate-100"
+                      className={`h-8.5 font-mono font-bold text-xs transition-all border flex items-center justify-center ${btnStyle} ${
+                        isActive ? "ring-2 ring-slate-900 ring-offset-1 font-black shadow-sm" : ""
                       }`}
                     >
                       {i + 1}
+                      {status === "answered_marked" && (
+                        <span className="h-2 w-2 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5 border border-white" />
+                      )}
                     </button>
                   );
                 })}
@@ -1210,8 +1352,18 @@ function CbtExamInterface() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded">
-                {q?.max_points || 10} Points
+              <Button
+                size="sm"
+                variant="outline"
+                type="button"
+                onClick={() => setCalcOpen(true)}
+                className="bg-slate-900 hover:bg-slate-800 text-white border-slate-700 text-xs font-mono font-bold h-8 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Calculator className="h-3.5 w-3.5 text-emerald-400" />
+                Virtual Calculator
+              </Button>
+              <span className="text-xs font-mono font-bold text-slate-700 bg-white border border-slate-200 px-2.5 py-1 rounded">
+                {q?.max_points || 1} Mark{(q?.max_points || 1) > 1 ? "s" : ""}
               </span>
             </div>
           </div>
@@ -1335,9 +1487,151 @@ function CbtExamInterface() {
                   </div>
                 )}
 
-                {/* 2. Multiple Choice Options (for MCQ, Scenario, Code Snippet, Aptitude, or any question with options) */}
-                {!isTrueFalse && hasOptions && (
+                {/* 2. GATE Numerical Answer Type (NAT) Input & Virtual Keypad */}
+                {isNAT && (
+                  <div className="space-y-4 pt-1 max-w-lg mx-auto">
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-sm flex items-start gap-2.5 text-xs text-amber-900 font-medium">
+                      <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <span><strong>Numerical Answer Type (NAT)</strong>: Enter the exact numerical value (integer or decimal). Negative marking: <strong>None</strong>.</span>
+                    </div>
+
+                    <div className="bg-slate-50 border-2 border-slate-300 rounded-lg p-5 shadow-xs flex flex-col items-center">
+                      <div className="w-full max-w-xs mb-4">
+                        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5 text-center">
+                          Numerical Answer Field
+                        </label>
+                        <input 
+                          type="text"
+                          className="w-full text-center text-2xl font-mono font-bold py-2.5 px-4 border-2 border-slate-400 rounded bg-white text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 tracking-widest"
+                          placeholder="0.00"
+                          value={typeof answers[q.id] === 'string' || typeof answers[q.id] === 'number' ? answers[q.id] : (answers[q.id]?.text || "")}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (/^-?\d*\.?\d*$/.test(val)) {
+                              setAnswers({ ...answers, [q.id]: val });
+                            }
+                          }}
+                        />
+                      </div>
+
+                      {/* On-Screen Numeric Keypad */}
+                      <div className="w-full max-w-xs bg-white border border-slate-300 rounded p-3 shadow-inner">
+                        <div className="text-[10px] uppercase font-bold text-slate-400 mb-2 text-center tracking-wider">
+                          On-Screen Numeric Keypad
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {["7", "8", "9", "4", "5", "6", "1", "2", "3", "0", ".", "-"].map((key) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => {
+                                const curr = String(typeof answers[q.id] === 'string' || typeof answers[q.id] === 'number' ? answers[q.id] : (answers[q.id]?.text || ""));
+                                let next = curr;
+                                if (key === "-") {
+                                  next = curr.startsWith("-") ? curr.slice(1) : "-" + curr;
+                                } else if (key === ".") {
+                                  if (!curr.includes(".")) next = curr + ".";
+                                } else {
+                                  next = curr + key;
+                                }
+                                setAnswers({ ...answers, [q.id]: next });
+                              }}
+                              className="h-10 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-mono font-bold text-base rounded transition-colors active:bg-slate-300 cursor-pointer"
+                            >
+                              {key}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const curr = String(typeof answers[q.id] === 'string' || typeof answers[q.id] === 'number' ? answers[q.id] : (answers[q.id]?.text || ""));
+                              const next = curr.slice(0, -1);
+                              setAnswers({ ...answers, [q.id]: next });
+                            }}
+                            className="h-9 bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-bold text-xs rounded transition-colors cursor-pointer"
+                          >
+                            Backspace
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newAns = { ...answers };
+                              delete newAns[q.id];
+                              setAnswers(newAns);
+                            }}
+                            className="h-9 bg-slate-200 hover:bg-slate-300 border border-slate-300 text-slate-700 font-bold text-xs rounded transition-colors cursor-pointer"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. GATE Multiple Select Questions (MSQ) */}
+                {isMSQ && hasOptions && (
                   <div className="space-y-3 pt-1">
+                    <div className="p-3 bg-purple-50 border border-purple-200 rounded-sm flex items-start gap-2.5 text-xs text-purple-900 font-medium">
+                      <AlertCircle className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
+                      <span><strong>Multiple Select Question (MSQ)</strong>: Select one or more options. Full marks awarded only if ALL correct options and NO incorrect options are chosen. Negative marking: <strong>None</strong>.</span>
+                    </div>
+
+                    {normOpts.map((opt: any) => {
+                      const currentMsq: string[] = Array.isArray(answers[q.id]) 
+                        ? answers[q.id] 
+                        : (answers[q.id]?.id ? [answers[q.id].id] : []);
+                      const isChecked = currentMsq.includes(opt.id);
+
+                      const handleToggle = () => {
+                        const updated = isChecked
+                          ? currentMsq.filter((id) => id !== opt.id)
+                          : [...currentMsq, opt.id].sort();
+                        if (updated.length === 0) {
+                          const newAns = { ...answers };
+                          delete newAns[q.id];
+                          setAnswers(newAns);
+                        } else {
+                          setAnswers({ ...answers, [q.id]: updated });
+                        }
+                      };
+
+                      return (
+                        <div 
+                          key={opt.id} 
+                          onClick={handleToggle} 
+                          className={`flex items-start gap-4 p-4 cursor-pointer transition-all border-2 rounded-xl select-none ${
+                            isChecked 
+                              ? "border-purple-600 bg-purple-50/80 shadow-xs ring-1 ring-purple-500/20" 
+                              : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70"
+                          }`}
+                        >
+                          <div className={`h-6 w-6 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                            isChecked ? "border-purple-600 bg-purple-600 text-white" : "border-slate-300 bg-white text-slate-500"
+                          }`}>
+                            {isChecked ? <Check className="h-4 w-4" /> : <span className="text-[11px] font-bold">{opt.id}</span>}
+                          </div>
+                          <div className="flex-1">
+                            <span className={`text-base leading-relaxed ${isChecked ? "text-slate-900 font-semibold" : "text-slate-700"}`}>
+                              {opt.text}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* 4. GATE Multiple Choice Questions (MCQ) - Single Select */}
+                {!isMSQ && !isNAT && !isTrueFalse && hasOptions && (
+                  <div className="space-y-3 pt-1">
+                    <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-sm flex items-center gap-2 text-xs text-slate-600 font-medium">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                      <span><strong>Multiple Choice Question (MCQ)</strong>: Only one option is correct. Negative marking applies (-1/3 or -2/3 marks).</span>
+                    </div>
+
                     {normOpts.map((opt: any) => {
                       const isChecked = 
                         answers[q.id]?.id === opt.id || 
@@ -1466,42 +1760,73 @@ function CbtExamInterface() {
             </div>
           </div>
 
-          {/* Inline Navigation (Strict Bottom Bar) */}
-          <div className="bg-slate-100 border-t border-slate-300 p-4 flex items-center justify-between shrink-0 z-20">
-            <Button 
-              variant="outline" 
-              disabled={activeQ === 0} 
-              onClick={() => switchQuestion(activeQ - 1)}
-              className="font-bold border-slate-300 text-slate-700 bg-white rounded-sm hover:bg-slate-50 uppercase text-xs tracking-wider h-10 px-6"
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" /> Previous
-            </Button>
-            
-            <Button
-              variant="ghost"
-              onClick={() => {
-                const newAns = {...answers};
-                delete newAns[q.id];
-                setAnswers(newAns);
-              }}
-              className="font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-200 uppercase text-[10px] tracking-wider rounded-sm h-8 px-4"
-            >
-              Clear Response
-            </Button>
+          {/* Inline Navigation (GATE TCS iON Standard Bottom Bar) */}
+          <div className="bg-slate-100 border-t border-slate-300 p-3.5 px-6 flex flex-wrap items-center justify-between gap-2 shrink-0 z-20">
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                disabled={activeQ === 0} 
+                onClick={() => switchQuestion(activeQ - 1)}
+                className="font-bold border-slate-300 text-slate-700 bg-white rounded-sm hover:bg-slate-50 uppercase text-xs tracking-wider h-9 px-4 cursor-pointer"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1.5" /> Previous
+              </Button>
+              
+              <Button
+                type="button"
+                onClick={() => {
+                  setMarkedForReview(prev => ({ ...prev, [q.id]: true }));
+                  if (activeQ < questions.length - 1) {
+                    switchQuestion(activeQ + 1);
+                  } else {
+                    toast.info("Marked Question for Review.");
+                  }
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-sm uppercase text-xs tracking-wider h-9 px-4 cursor-pointer"
+              >
+                Mark for Review &amp; Next
+              </Button>
+
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  const newAns = {...answers};
+                  delete newAns[q.id];
+                  setAnswers(newAns);
+                  setMarkedForReview(prev => {
+                    const next = { ...prev };
+                    delete next[q.id];
+                    return next;
+                  });
+                }}
+                className="font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200 uppercase text-xs tracking-wider rounded-sm h-9 px-3 border border-slate-300 bg-white cursor-pointer"
+              >
+                Clear Response
+              </Button>
+            </div>
 
             <Button 
               onClick={() => {
-                if (activeQ < questions.length - 1) switchQuestion(activeQ + 1);
+                setMarkedForReview(prev => {
+                  const next = { ...prev };
+                  delete next[q.id];
+                  return next;
+                });
+                if (activeQ < questions.length - 1) {
+                  switchQuestion(activeQ + 1);
+                } else {
+                  toast.success("Answer saved for last question.");
+                }
               }}
-              disabled={activeQ === questions.length - 1}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-sm uppercase text-xs tracking-wider h-10 px-8 disabled:opacity-50"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-sm uppercase text-xs tracking-wider h-9 px-6 cursor-pointer"
             >
-              Save & Next <ChevronRight className="h-4 w-4 ml-2" />
+              Save &amp; Next <ChevronRight className="h-4 w-4 ml-1.5" />
             </Button>
           </div>
 
         </div>
       </div>
+      <GateScientificCalculator isOpen={calcOpen} onClose={() => setCalcOpen(false)} />
     </div>
   );
 }

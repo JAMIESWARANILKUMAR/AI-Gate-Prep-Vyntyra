@@ -799,13 +799,13 @@ function AdminDashboard() {
                 </div>
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight text-white">
                   Hello,{" "}
-                  <span className="text-amber-400 font-black tracking-tight drop-shadow-[0_2px_14px_rgba(251,191,36,0.5)]">
-                    Super Admin
+                  <span className="text-emerald-400 font-black tracking-tight">
+                    Platform Controller
                   </span>
                 </h1>
                 <p className="text-lg sm:text-xl text-slate-200 mt-1.5 flex items-center gap-1.5 flex-wrap">
-                  <span className="text-amber-400 font-bold">@</span>
-                  <span className="font-semibold text-white tracking-wide">Vyntyra Consultancy Services</span>
+                  <span className="text-emerald-400 font-bold">@</span>
+                  <span className="font-semibold text-white tracking-wide">AI GATE Preparation Platform</span>
                 </p>
                 <div className="text-xs sm:text-sm text-slate-300 mt-3 max-w-2xl flex items-center gap-2 flex-wrap font-medium">
                   <span className="text-slate-300">
@@ -813,29 +813,35 @@ function AdminDashboard() {
                   </span>
                   <span className="text-slate-500">·</span>
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/10 text-white font-mono text-[11px] font-bold border border-white/15">
-                    {stats.total} total applications
+                    {stats.total} registered aspirants
                   </span>
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[11px] font-bold border border-emerald-500/30">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    {stats.new} new
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold border border-amber-500/30">
-                    {stats.shortlisted} shortlisted
+                    GATE 2026 Ready
                   </span>
                 </div>
               </div>
               <div className="flex flex-col sm:items-end gap-2 w-full sm:w-auto mt-4 sm:mt-0">
                 <div className="text-left sm:text-right hidden sm:block">
                   <div className="text-4xl sm:text-5xl font-bold tracking-tight">{stats.total}</div>
-                  <div className="text-xs uppercase tracking-widest text-primary-foreground/60 mt-1">Total Applications</div>
+                  <div className="text-xs uppercase tracking-widest text-primary-foreground/60 mt-1">Aspirants Registered</div>
                 </div>
                 <div className="flex flex-wrap justify-start sm:justify-end items-center gap-2 mt-1 w-full sm:w-auto">
+                  <Button
+                    asChild
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 border border-emerald-700 flex-1 sm:flex-none justify-center"
+                  >
+                    <Link to="/admin/operations" search={{ tab: "gate-vault" }}>
+                      <BookOpen className="h-4 w-4" /> GATE R2 Vault
+                    </Link>
+                  </Button>
+
                   <Button
                     asChild
                     className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 border border-slate-900 flex-1 sm:flex-none justify-center"
                   >
                     <Link to="/admin/operations" search={{ tab: "cbt" }}>
-                      <BrainCircuit className="h-4 w-4" /> AI CBT Engine
+                      <BrainCircuit className="h-4 w-4" /> Mock Tests & Quotas
                     </Link>
                   </Button>
 
@@ -843,8 +849,8 @@ function AdminDashboard() {
                     asChild
                     className="bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs shadow-xs flex items-center gap-1.5 border border-slate-300 flex-1 sm:flex-none justify-center"
                   >
-                    <Link to="/admin/operations" search={{ tab: "dataset-vault" }}>
-                      <Database className="h-4 w-4" /> Dataset Vault & CSV Hub
+                    <Link to="/admin/settings" search={{ tab: "gate_config" }}>
+                      <Database className="h-4 w-4" /> System & Keys Config
                     </Link>
                   </Button>
 

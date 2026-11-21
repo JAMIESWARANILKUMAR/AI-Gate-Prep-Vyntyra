@@ -1,157 +1,139 @@
-import { Mail, Phone, MapPin, ExternalLink, ShieldCheck, Linkedin, Twitter, Instagram, Facebook, Globe, MessageSquare, Briefcase, Chrome, Users } from "lucide-react";
+import { GraduationCap, BookOpen, ShieldCheck, Mail, MapPin, ExternalLink, CheckCircle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
-
-function VisitorCounter() {
-  const count = 12459;
-
-  return (
-    <div className="flex items-center gap-3 text-xs text-primary-foreground/60 bg-white/[0.02] hover:bg-white/[0.04] transition-colors px-5 py-2.5 rounded-full border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] backdrop-blur-md cursor-default">
-      <Users className="h-4 w-4 text-gold/80" />
-      <span className="font-medium tracking-wide">Total Visitors</span>
-      <div className="w-px h-3 bg-white/20" />
-      <span className="text-white font-mono tracking-tight tabular-nums font-semibold">{count.toLocaleString()}</span>
-    </div>
-  );
-}
 
 export function Footer() {
   return (
-    <footer className="relative bg-[#0a1128] text-primary-foreground overflow-hidden">
-      {/* Premium subtle gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0a1128] to-[#050814] pointer-events-none" />
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gold/5 blur-[120px] rounded-full pointer-events-none translate-x-1/3 -translate-y-1/3" />
-      <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-blue-500/5 blur-[150px] rounded-full pointer-events-none -translate-x-1/3 translate-y-1/3" />
-      
-      {/* Top Border Glow */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/20 to-transparent opacity-70" />
-
-      <div className="relative mx-auto w-full max-w-[1800px] px-4 sm:px-8 lg:px-12 py-8 sm:py-10">
+    <footer className="bg-slate-950 text-slate-300 border-t border-slate-800">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
           
-          {/* Brand & Logo */}
-          <div className="flex flex-col gap-4">
-            <Link to="/" className="inline-block w-fit opacity-90 hover:opacity-100 transition-opacity">
-              <img 
-                src="/icon-512.png" 
-                alt="Vyntyra" 
-                className="h-10 w-auto object-contain rounded-md drop-shadow-md"  
-              />
-            </Link>
-            <div>
-              <h2 className="font-semibold text-lg tracking-tight text-white/95">Vyntyra</h2>
-              <div className="text-[10px] uppercase tracking-[0.25em] text-gold/90 font-medium mt-0.5">
-                Consultancy Services
+          {/* Brand Info */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-sm bg-white text-slate-950 flex items-center justify-center font-black text-xs">
+                GATE
+              </div>
+              <div>
+                <h2 className="font-bold text-base text-white tracking-tight">AI GATE PREP</h2>
+                <div className="text-[10px] uppercase tracking-widest text-slate-400 font-medium">
+                  Enterprise Platform
+                </div>
               </div>
             </div>
-            <p className="text-xs text-primary-foreground/60 leading-relaxed">
-              Enterprise software engineering, custom AI solutions, cloud infrastructure, and certified industrial internships. Great Place to Work® Certified (2026–27) & NASSCOM FutureSkills Prime Recognised.
+            <p className="text-xs text-slate-400 leading-relaxed mt-1">
+              Enterprise-grade GATE preparation platform featuring authentic CBT test engine, Cloudflare R2 PYQ vault, AI 3-part logical derivations, and All-India percentile tracking.
             </p>
-            
-            <div className="flex flex-wrap gap-2.5 mt-2">
-              {[
-                { Icon: Instagram, label: "Instagram" },
-                { Icon: Facebook, label: "Facebook" },
-                { Icon: Twitter, label: "Twitter" },
-                { Icon: Globe, label: "Website" },
-                { Icon: MessageSquare, label: "Discord" },
-                { Icon: Briefcase, label: "Glassdoor" },
-                { Icon: Linkedin, label: "LinkedIn" },
-                { Icon: Chrome, label: "Google" }
-              ].map(({ Icon, label }, i) => (
-                <a key={i} href="#" title={label} className="w-8 h-8 rounded-full border border-white/10 bg-white/5 flex items-center justify-center hover:bg-gold hover:border-gold hover:text-[#0a1128] transition-all duration-300">
-                  <Icon className="h-3.5 w-3.5" />
-                </a>
-              ))}
+            <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-slate-900 border border-slate-800 text-[11px] font-mono">
+                <CheckCircle className="h-3 w-3 text-emerald-400" /> TCS iON Exam Standard
+              </span>
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* GATE Engineering Branches */}
           <div>
-            <h3 className="text-[11px] uppercase tracking-[0.2em] text-gold font-semibold mb-4 flex items-center gap-2">
-              Company
+            <h3 className="text-xs uppercase tracking-wider text-white font-bold mb-3 flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5 text-blue-400" /> Supported Branches
             </h3>
-            <ul className="space-y-2.5 text-xs text-primary-foreground/60 font-medium">
-              <li>
-                <a href="https://vyntyraconsultancyservices.in" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-white transition-colors group">
-                  About Vyntyra 
-                  <ExternalLink className="h-3 w-3 opacity-0 -translate-x-1 translate-y-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-300 text-gold" />
-                </a>
+            <ul className="space-y-2 text-xs text-slate-400">
+              <li className="flex items-center justify-between">
+                <span>Computer Science &amp; IT</span>
+                <span className="font-mono text-[10px] text-slate-500 font-bold bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">CS</span>
               </li>
-              <li><Link to="/careers" className="hover:text-white transition-colors">Careers</Link></li>
-              <li><Link to="/" className="hover:text-white transition-colors">Why Join Us</Link></li>
-              <li><Link to="/status" className="hover:text-white transition-colors">Track Application</Link></li>
+              <li className="flex items-center justify-between">
+                <span>Data Science &amp; AI</span>
+                <span className="font-mono text-[10px] text-slate-500 font-bold bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">DA</span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span>Electronics &amp; Communication</span>
+                <span className="font-mono text-[10px] text-slate-500 font-bold bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">EC</span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span>Electrical Engineering</span>
+                <span className="font-mono text-[10px] text-slate-500 font-bold bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">EE</span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span>Mechanical Engineering</span>
+                <span className="font-mono text-[10px] text-slate-500 font-bold bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">ME</span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span>Civil Engineering</span>
+                <span className="font-mono text-[10px] text-slate-500 font-bold bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">CE</span>
+              </li>
             </ul>
           </div>
           
-          {/* Support & Portals */}
+          {/* Secure Role Portals */}
           <div>
-            <h3 className="text-[11px] uppercase tracking-[0.2em] text-gold font-semibold mb-4 flex items-center gap-2">
-              Secure Portals
+            <h3 className="text-xs uppercase tracking-wider text-white font-bold mb-3 flex items-center gap-1.5">
+              <GraduationCap className="h-3.5 w-3.5 text-blue-400" /> Platform Portals
             </h3>
             <div className="flex flex-col gap-2 text-xs">
-              <Link to="/auth/employee" className="group flex items-center justify-between p-2.5 rounded-lg bg-white/[0.01] hover:bg-white/[0.04] border border-transparent hover:border-white/10 transition-all">
-                <span className="text-xs font-medium text-white/70 group-hover:text-white transition-colors">Employee Dashboard</span>
-                <ExternalLink className="h-3.5 w-3.5 text-white/30 group-hover:text-white/70 transition-all" />
+              <Link 
+                to="/auth/intern" 
+                className="group flex items-center justify-between p-2.5 rounded-sm bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors"
+              >
+                <div className="flex flex-col">
+                  <span className="font-semibold text-slate-200 group-hover:text-white">Aspirant Portal</span>
+                  <span className="text-[10px] text-slate-500">Mocks, Vault, Roadmap, Solver</span>
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 text-slate-500 group-hover:text-slate-300" />
               </Link>
-              <Link to="/auth/intern" className="group flex items-center justify-between p-2.5 rounded-lg bg-white/[0.01] hover:bg-white/[0.04] border border-transparent hover:border-white/10 transition-all">
-                <span className="text-xs font-medium text-white/70 group-hover:text-white transition-colors">Intern Dashboard</span>
-                <ExternalLink className="h-3.5 w-3.5 text-white/30 group-hover:text-white/70 transition-all" />
+              <Link 
+                to="/auth/employee" 
+                className="group flex items-center justify-between p-2.5 rounded-sm bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors"
+              >
+                <div className="flex flex-col">
+                  <span className="font-semibold text-slate-200 group-hover:text-white">SME / Reviewer Desk</span>
+                  <span className="text-[10px] text-slate-500">Breakdown Audit, Doubt Escalation</span>
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 text-slate-500 group-hover:text-slate-300" />
               </Link>
-              <Link to="/auth/admin" className="group flex items-center justify-between p-2.5 rounded-lg bg-gold/[0.02] hover:bg-gold/[0.08] border border-transparent hover:border-gold/20 transition-all">
-                <span className="text-xs font-medium text-gold/70 group-hover:text-gold transition-colors">Super Admin</span>
-                <ShieldCheck className="h-3.5 w-3.5 text-gold/40 group-hover:text-gold/80 transition-all" />
+              <Link 
+                to="/auth/admin" 
+                className="group flex items-center justify-between p-2.5 rounded-sm bg-slate-900 border border-amber-950/60 hover:border-amber-800/80 transition-colors"
+              >
+                <div className="flex flex-col">
+                  <span className="font-semibold text-amber-300 group-hover:text-amber-200">Admin Controller</span>
+                  <span className="text-[10px] text-amber-500/70">Vault, Quotas, System Config</span>
+                </div>
+                <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />
               </Link>
             </div>
           </div>
 
-          {/* Contact */}
+          {/* Verification & Academic Compliance */}
           <div>
-            <h3 className="text-[11px] uppercase tracking-[0.2em] text-gold font-semibold mb-4">
-              Global HQ
+            <h3 className="text-xs uppercase tracking-wider text-white font-bold mb-3 flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Examination Standard
             </h3>
-            <div className="space-y-3">
-              <a href="mailto:hr@vyntyraconsultancyservices.in" className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-gold/30 transition-all group">
-                <div className="bg-black/20 p-1.5 rounded-md shadow-inner">
-                  <Mail className="h-3.5 w-3.5 text-gold" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[9px] uppercase tracking-wider text-primary-foreground/40">Email</span>
-                  <span className="text-xs leading-tight text-white/80 group-hover:text-white transition-colors truncate">Send an Email</span>
-                </div>
-              </a>
-              <div className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.02] border border-white/5 hover:border-gold/30 transition-all group">
-                <div className="bg-black/20 p-1.5 rounded-md shadow-inner">
-                  <MapPin className="h-3.5 w-3.5 text-gold" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[9px] uppercase tracking-wider text-primary-foreground/40">India</span>
-                  <span className="text-xs leading-tight text-white/80 group-hover:text-white transition-colors truncate">Global Delivery Center</span>
-                </div>
-              </div>
-            </div>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Fully compliant with the official Graduate Aptitude Test in Engineering (GATE) syllabus and question types:
+            </p>
+            <ul className="mt-2 space-y-1.5 text-xs text-slate-400">
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Multiple Choice Questions (MCQ)
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-400" /> Multiple Select Questions (MSQ)
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> Numerical Answer Type (NAT)
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-purple-400" /> Virtual Scientific Calculator
+              </li>
+            </ul>
           </div>
         </div>
 
         {/* Bottom Section */}
-        <div className="mt-8 pt-4 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-primary-foreground/40 font-medium">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-gold/50" />
-              © {new Date().getFullYear()} Vyntyra Consultancy Services. All rights reserved.
-            </div>
-            <div className="text-[10px] text-white/40">
-              Managed by Legal Authorized Person: <span className="text-white/60">JAMI ESWAR ANIL KUMAR</span> (Founder &amp; Director) · <a href="mailto:jamieswaranilkumar@vyntyraconsultancyservices.in" className="hover:text-gold transition-colors">jamieswaranilkumar@vyntyraconsultancyservices.in</a>
-            </div>
+        <div className="mt-10 pt-4 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+          <div>
+            © {new Date().getFullYear()} AI GATE Preparation Platform. All rights reserved.
           </div>
-          
-          <VisitorCounter />
-          
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-            <Link to="/privacy" className="hover:text-gold transition-colors">Privacy Policy</Link>
-            <Link to="/terms" className="hover:text-gold transition-colors">Terms &amp; Conditions</Link>
-            <Link to="/agreement" className="hover:text-gold transition-colors">User Agreement</Link>
-            <Link to="/refunds" className="hover:text-gold transition-colors">Refund Policy</Link>
+          <div className="text-[11px] text-slate-500 text-center md:text-right max-w-xl">
+            Disclaimer: GATE is an examination administered by the Indian Institute of Science (IISc) and IITs on behalf of the National Coordination Board (NCB)-GATE. This platform provides independent educational and assessment tools.
           </div>
         </div>
       </div>

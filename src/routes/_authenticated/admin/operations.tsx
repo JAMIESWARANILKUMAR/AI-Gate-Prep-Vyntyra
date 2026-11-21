@@ -1,3 +1,4 @@
+import { GateVaultView } from "@/components/gate-vault-view";
 import { AdminInternChatAuditView } from "@/components/admin-intern-chat-audit";
 import MDEditor from '@uiw/react-md-editor';
 import ReactQuill from 'react-quill';
@@ -1054,7 +1055,8 @@ function OperationsDashboard() {
       title: "Governance & Data",
       items: [
         { id: "finances", label: "Finances & Payouts", icon: DollarSign, count: null },
-        { id: "cbt", label: "AI CBT Engine", icon: BrainCircuit, count: null },
+        { id: "gate-vault", label: "GATE R2 Vault & PYQs", icon: BookOpen, count: null },
+        { id: "cbt", label: "AI CBT & Mock Allocations", icon: BrainCircuit, count: null },
         { id: "ambassador", label: "Campus Ambassador", icon: Award, count: null },
         { id: "dataset-vault", label: "Dataset Vault & CSV Hub", icon: Database, count: null },
         { id: "profile_approvals", label: "Profile Approvals", icon: UserCheck, count: null },

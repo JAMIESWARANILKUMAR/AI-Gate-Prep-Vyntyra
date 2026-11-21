@@ -1,3 +1,4 @@
+import { GateSmeReviewView } from "@/components/gate-sme-review-view";
 import { listAssignedInterviews, submitInterviewFeedback } from "@/lib/applications.functions";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -1352,6 +1353,7 @@ function EmployeeDashboard() {
 
   const TABS = [
     { id: "overview", label: "Overview", enabled: true },
+    { id: "sme_reviews", label: "SME Review & Verification Desk", enabled: true },
     { id: "tasks", label: `Tasks`, badge: pendingTasks.length, enabled: isModuleEnabled("tasks") },
     { id: "attendance", label: "Attendance & Time", enabled: isModuleEnabled("attendance") },
     { id: "leave", label: "Leaves", enabled: isModuleEnabled("leave") },
@@ -1683,6 +1685,13 @@ function EmployeeDashboard() {
       <main className="w-full max-w-[1800px] mx-auto px-4 sm:px-8 py-6 relative z-10">
         <AnimatePresence mode="wait">
           
+          {/* ─── SME ACADEMIC REVIEW DESK ─── */}
+          {activeTab === "sme_reviews" && (
+            <div className="space-y-6 pb-12">
+              <GateSmeReviewView />
+            </div>
+          )}
+
           {/* ─── OVERVIEW ─── */}
           {activeTab === "overview" && (
             <motion.div key="overview" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="space-y-6">

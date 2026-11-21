@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Briefcase, Mail, Lock, Loader2, ArrowRight, KeyRound } from "lucide-react";
+import { Briefcase, Mail, Lock, Loader2, KeyRound, CheckSquare } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/auth/employee")({
-  head: () => ({ meta: [{ title: "Employee Portal — Vyntyra" }] }),
+  head: () => ({ meta: [{ title: "SME / Reviewer Sign In — AI GATE Prep Platform" }] }),
   component: EmployeeAuthPage,
 });
 
@@ -22,15 +22,12 @@ function EmployeeAuthPage() {
   const [mfaCode, setMfaCode] = useState("");
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
 
-
-useEffect(() => {
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        // Check MFA
         const { data: level } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
         if (level && level.nextLevel === 'aal2' && level.currentLevel !== 'aal2') {
            setShowMfa(true);
-           // Find the TOTP factor id
            const factors = session.user.factors || [];
            const totp = factors.find(f => f.factor_type === 'totp' && f.status === 'verified');
            if (totp) setMfaFactorId(totp.id);
@@ -47,7 +44,6 @@ useEffect(() => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-
   async function handleVerifyMfa(e: React.FormEvent) {
     e.preventDefault();
     if (!mfaFactorId || !mfaCode) return;
@@ -58,8 +54,7 @@ useEffect(() => {
       const verify = await supabase.auth.mfa.verify({ factorId: mfaFactorId, challengeId: challenge.data.id, code: mfaCode });
       if (verify.error) throw verify.error;
       
-      toast.success("Welcome back to your workspace");
-      // The onAuthStateChange will pick up the new AAL level and redirect
+      toast.success("Welcome back, Subject Matter Expert");
     } catch(err: any) {
       toast.error(err.message || "Invalid authenticator code");
     } finally {
@@ -67,16 +62,16 @@ useEffect(() => {
     }
   }
 
-async function handleSignIn(e: React.FormEvent) {
+  async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-        const { error, data } = await supabase.auth.signInWithPassword({ 
+        const { error } = await supabase.auth.signInWithPassword({ 
           email: email.trim(), 
           password: password.trim() 
         });
         if (error) throw error;
-        // The onAuthStateChange will handle the rest (MFA check & redirect)
+        toast.success("Welcome back, Reviewer");
     } catch(error: any) {
         toast.error(error.message);
     } finally {
@@ -85,116 +80,95 @@ async function handleSignIn(e: React.FormEvent) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden bg-slate-50">
-      {/* Animated Background Orbs (Employee Theme - Blues) */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-300/40 blur-[120px] animate-pulse" style={{ animationDuration: '5s' }} />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-300/40 blur-[120px] animate-pulse" style={{ animationDuration: '7s' }} />
-      
-      <div className="w-full max-w-md relative z-10" style={{ animation: 'fadeInUp 0.8s ease-out forwards' }}>
-        <a href="/" className="flex flex-col items-center justify-center mb-8 group">
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-lg transform transition-all duration-500 group-hover:scale-110 group-hover:-rotate-2 group-hover:shadow-xl">
-            <img src="/icon-512.png" alt="Vyntyra" className="h-14 w-auto drop-shadow-sm" />
+    <div className="min-h-screen flex items-center justify-center px-4 bg-slate-950 font-sans">
+      <div className="w-full max-w-md">
+        <a href="/" className="flex flex-col items-center justify-center mb-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
+            <CheckSquare className="h-8 w-8 text-sky-400" />
           </div>
-          <span className="mt-4 text-slate-500 tracking-[0.2em] uppercase text-[10px] font-bold group-hover:text-blue-600 transition-colors duration-300">Vyntyra Connect</span>
+          <span className="mt-3 text-slate-400 tracking-[0.2em] uppercase text-[11px] font-mono font-bold">
+            SME & Academic Reviewer Desk
+          </span>
         </a>
 
-        <div className="bg-white border border-slate-100 rounded-3xl shadow-2xl p-8 relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="flex items-center justify-center gap-2 text-[10px] text-blue-600 uppercase tracking-widest font-bold mb-6">
-              <Briefcase className="h-3.5 w-3.5" /> Employee Workspace
-            </div>
-            <h1 className="font-serif text-3xl font-bold text-slate-900 text-center mb-1">Welcome Back</h1>
-            <p className="text-sm text-slate-500 text-center mb-8">Sign in to access your dashboard</p>
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 shadow-sm">
+          <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold mb-4">
+            <Briefcase className="h-3.5 w-3.5 text-sky-400" /> Subject Matter Expert Portal
+          </div>
+          <h1 className="text-xl font-bold text-white text-center mb-1">Reviewer Sign In</h1>
+          <p className="text-xs text-slate-400 text-center mb-6">Verify AI solution breakdowns & resolve escalated doubts</p>
 
-  
           {showMfa ? (
-            <form onSubmit={handleVerifyMfa} className="space-y-5">
+            <form onSubmit={handleVerifyMfa} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Authenticator Code</label>
-                <div className="relative group">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5 group-focus-within:text-blue-500 transition-colors" />
-                  <input
+                <Label className="text-[10px] uppercase font-mono tracking-widest text-slate-400">Authenticator Code</Label>
+                <div className="relative flex items-center">
+                  <KeyRound className="absolute left-3.5 h-4 w-4 text-slate-500" />
+                  <Input
                     type="text"
                     required
                     placeholder="Enter 6-digit code"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                    className="bg-slate-950 border-slate-800 text-white text-center font-mono tracking-widest h-11 pl-10 text-sm focus:border-slate-600 rounded-lg"
                     value={mfaCode}
                     onChange={(e) => setMfaCode(e.target.value)}
                   />
                 </div>
-                <p className="text-xs text-slate-500">Open your Authenticator app to get the code.</p>
               </div>
 
-              <button
+              <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition-all shadow-[0_4px_14px_0_rgb(37,99,235,0.39)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.23)] hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:-translate-y-0 disabled:hover:shadow-[0_4px_14px_0_rgb(37,99,235,0.39)]"
+                className="w-full h-11 bg-slate-100 hover:bg-white text-slate-950 font-bold rounded-lg text-xs uppercase tracking-wider"
               >
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Verify Code"}
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => setShowMfa(false)}
-                className="w-full text-sm text-slate-500 hover:text-slate-800 transition-colors"
-              >
-                Cancel
-              </button>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Verify & Enter"}
+              </Button>
             </form>
           ) : (
-            <form onSubmit={handleSignIn} className="space-y-5">
-
-              <div className="space-y-1.5 group">
-                <Label className="text-[10px] uppercase tracking-widest text-slate-500 group-focus-within:text-blue-600 transition-colors ml-1">Email Address</Label>
+            <form onSubmit={handleSignIn} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-mono tracking-widest text-slate-400">Academic / SME Email</Label>
                 <div className="relative flex items-center">
-                  <Mail className="absolute left-4 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                  <Input 
-                    type="email" 
-                    required 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    className="bg-slate-50/50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all rounded-xl h-14 pl-12 pr-4 text-base"
-                    placeholder="name@vyntyra.in"
+                  <Mail className="absolute left-3.5 h-4 w-4 text-slate-500" />
+                  <Input
+                    type="email"
+                    required
+                    placeholder="reviewer@gateprep.ai"
+                    className="bg-slate-950 border-slate-800 text-white h-11 pl-10 text-xs focus:border-slate-600 rounded-lg"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5 group">
-                <Label className="text-[10px] uppercase tracking-widest text-slate-500 group-focus-within:text-blue-600 transition-colors ml-1">Password</Label>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-mono tracking-widest text-slate-400">Password</Label>
                 <div className="relative flex items-center">
-                  <Lock className="absolute left-4 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                  <Input 
-                    type="password" 
-                    required 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    className="bg-slate-50/50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all rounded-xl h-14 pl-12 pr-4 text-base"
+                  <Lock className="absolute left-3.5 h-4 w-4 text-slate-500" />
+                  <Input
+                    type="password"
+                    required
                     placeholder="••••••••••••"
+                    className="bg-slate-950 border-slate-800 text-white h-11 pl-10 text-xs focus:border-slate-600 rounded-lg"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
               </div>
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={loading}
-                className="w-full h-14 mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold tracking-wide rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+                className="w-full h-11 bg-slate-100 hover:bg-white text-slate-950 font-bold rounded-lg text-xs uppercase tracking-wider transition-colors mt-2"
               >
-                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Sign In to Workspace"}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Sign In to Review Desk"}
               </Button>
             </form>
           )}
 
-            {/* Support Contact */}
-            <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center text-center">
-              <span className="text-xs text-slate-500 mb-2">Need support? Contact your administrator</span>
-              <a 
-                href="mailto:hr@vyntyraconsultancyservices.in" 
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors group"
-              >
-                hr@vyntyraconsultancyservices.in
-                <ArrowRight className="h-3.5 w-3.5 -translate-x-1 group-hover:translate-x-0 transition-transform duration-300" />
-              </a>
-            </div>
+          <div className="mt-6 pt-4 border-t border-slate-800 text-center">
+            <span className="text-[11px] text-slate-500 font-mono">
+              Role: Subject Matter Expert • Solution Verification & Quality Audit
+            </span>
           </div>
         </div>
       </div>

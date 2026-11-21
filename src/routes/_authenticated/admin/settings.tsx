@@ -1,3 +1,5 @@
+import { AdminGateSystemConfig } from "@/components/admin-gate-system-config";
+import { Cpu } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -47,7 +49,7 @@ import { saveNocPdf, updateNocUrl } from "@/lib/noc.functions";
 import { AdminVoiceTrainingStudio } from "@/components/interview/AdminVoiceTrainingStudio";
 import { localDateTimeToIso, isoToLocalDateTimeInput, formatDateTimeDisplay } from "@/lib/date-utils";
 
-type SettingsTab = "referrals" | "intern_fees" | "system_modules" | "branding" | "career_tracks" | "noc_controls" | "ai_voice";
+type SettingsTab = "gate_config" | "referrals" | "intern_fees" | "system_modules" | "branding" | "career_tracks" | "noc_controls" | "ai_voice";
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   validateSearch: (search: Record<string, unknown>): { tab?: SettingsTab } => {
