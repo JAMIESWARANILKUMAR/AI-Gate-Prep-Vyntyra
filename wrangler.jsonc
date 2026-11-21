@@ -31,11 +31,18 @@
       "preview_bucket_name": "ai-gate-prep-vyntyra"
     }
   ],
+  "kv_namespaces": [
+    {
+      "binding": "GATE_KV",
+      "id": "a3cd172cd407456bba1d4e9a146a5062"
+    }
+  ],
   "vars": {
     "CLOUDFLARE_ACCOUNT_ID": "a3566574bfc98346c9a06293c449f2f8",
     "CLOUDFLARE_BUCKET_NAME": "ai-gate-prep-vyntyra",
     "CLOUDFLARE_D1_DATABASE_ID": "ec50eaa4-9e6b-4eb2-961f-ce5af28ea44a",
     "CLOUDFLARE_D1_DATABASE_NAME": "ai_gate_prep_vyntyra",
+    "CLOUDFLARE_KV_NAMESPACE_ID": "a3cd172cd407456bba1d4e9a146a5062",
     "SUPABASE_URL": "https://vmoppxbrihhxkbbfcolw.supabase.co",
     "SUPABASE_JWKS_URL": "https://vmoppxbrihhxkbbfcolw.supabase.co/auth/v1/.well-known/jwks.json",
     "VITE_SUPABASE_URL": "https://vmoppxbrihhxkbbfcolw.supabase.co",
