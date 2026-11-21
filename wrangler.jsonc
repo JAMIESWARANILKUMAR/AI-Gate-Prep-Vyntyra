@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "vyntyra-vynexa",
+  "name": "ai-gate-prep-vyntyra",
   "main": ".output/server/index.mjs",
   "compatibility_date": "2026-02-24",
   "compatibility_flags": [
@@ -17,11 +17,28 @@
     "enabled": false
   },
   "keep_vars": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ai_gate_prep_vyntyra",
+      "database_id": "ec50eaa4-9e6b-4eb2-961f-ce5af28ea44a"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "GATE_VAULT_BUCKET",
+      "bucket_name": "ai-gate-prep-vyntyra",
+      "preview_bucket_name": "ai-gate-prep-vyntyra"
+    }
+  ],
   "vars": {
-    "CLOUDFLARE_BUCKET_NAME": "vynexa-storage",
-    "SUPABASE_URL": "https://yvcocxnucmqxigrgkzha.supabase.co",
-    "SUPABASE_JWKS_URL": "https://yvcocxnucmqxigrgkzha.supabase.co/auth/v1/.well-known/jwks.json",
-    "VITE_SUPABASE_URL": "https://yvcocxnucmqxigrgkzha.supabase.co",
+    "CLOUDFLARE_ACCOUNT_ID": "a3566574bfc98346c9a06293c449f2f8",
+    "CLOUDFLARE_BUCKET_NAME": "ai-gate-prep-vyntyra",
+    "CLOUDFLARE_D1_DATABASE_ID": "ec50eaa4-9e6b-4eb2-961f-ce5af28ea44a",
+    "CLOUDFLARE_D1_DATABASE_NAME": "ai_gate_prep_vyntyra",
+    "SUPABASE_URL": "https://vmoppxbrihhxkbbfcolw.supabase.co",
+    "SUPABASE_JWKS_URL": "https://vmoppxbrihhxkbbfcolw.supabase.co/auth/v1/.well-known/jwks.json",
+    "VITE_SUPABASE_URL": "https://vmoppxbrihhxkbbfcolw.supabase.co",
     "VITE_CLOUDFLARE_PUBLIC_URL": "https://pub-31cdacf0ce134d38bfc7490b92bbcb00.r2.dev"
   }
 }
