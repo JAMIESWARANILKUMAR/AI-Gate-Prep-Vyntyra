@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { execSync } from 'child_process';
 
-const PROJECT_NAME = 'vyntyra-vynexa'; // The name from your Cloudflare dashboard
+const PROJECT_NAME = 'ai-gate-prep-vyntyra'; // The name from your Cloudflare dashboard
 const ENV_FILE = '.env';
 const ENV_BACKUP = '.env.backup';
 
@@ -10,7 +10,6 @@ if (!fs.existsSync(ENV_FILE) && !fs.existsSync(ENV_BACKUP)) {
   process.exit(1);
 }
 
-// Rename .env to .env.backup so wrangler doesn't auto-load the invalid CLOUDFLARE_API_TOKEN from it
 if (fs.existsSync(ENV_FILE)) {
   fs.renameSync(ENV_FILE, ENV_BACKUP);
 }
@@ -18,7 +17,7 @@ if (fs.existsSync(ENV_FILE)) {
 const envContent = fs.readFileSync(ENV_BACKUP, 'utf-8');
 const lines = envContent.split('\n');
 
-console.log(`Starting sync to Cloudflare Pages project: ${PROJECT_NAME}...`);
+console.log(`Starting sync to Cloudflare Workers project: ${PROJECT_NAME}...`);
 
 try {
   for (let line of lines) {
@@ -45,7 +44,7 @@ try {
         stdio: ['pipe', 'inherit', 'inherit'],
         env: {
           ...process.env,
-          CLOUDFLARE_API_TOKEN: '', // Ensure it's not present
+          CLOUDFLARE_API_TOKEN: '',
         }
       });
       console.log(`✅ Successfully synced ${key}`);
@@ -54,10 +53,9 @@ try {
     }
   }
 } finally {
-  // Restore the .env file
   if (fs.existsSync(ENV_BACKUP)) {
     fs.renameSync(ENV_BACKUP, ENV_FILE);
   }
 }
 
-console.log('\n🎉 Auto-sync complete! All keys from .env are now in Cloudflare Pages.');
+console.log('\n🎉 Auto-sync complete! All keys from .env are now in Cloudflare.');

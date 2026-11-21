@@ -43,9 +43,9 @@
     "CLOUDFLARE_D1_DATABASE_ID": "ec50eaa4-9e6b-4eb2-961f-ce5af28ea44a",
     "CLOUDFLARE_D1_DATABASE_NAME": "ai_gate_prep_vyntyra",
     "CLOUDFLARE_KV_NAMESPACE_ID": "a3cd172cd407456bba1d4e9a146a5062",
+    "VITE_CLOUDFLARE_PUBLIC_URL": "https://pub-6aedbff3e9ed429dbf052e690252ec6f.r2.dev",
     "SUPABASE_URL": "https://vmoppxbrihhxkbbfcolw.supabase.co",
     "SUPABASE_JWKS_URL": "https://vmoppxbrihhxkbbfcolw.supabase.co/auth/v1/.well-known/jwks.json",
-    "VITE_SUPABASE_URL": "https://vmoppxbrihhxkbbfcolw.supabase.co",
-    "VITE_CLOUDFLARE_PUBLIC_URL": "https://pub-6aedbff3e9ed429dbf052e690252ec6f.r2.dev"
+    "VITE_SUPABASE_URL": "https://vmoppxbrihhxkbbfcolw.supabase.co"
   }
 }
